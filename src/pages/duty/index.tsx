@@ -6,7 +6,7 @@ import TypeTag from '@/components/TypeTag';
 import TaskItem from '@/components/TaskItem';
 import { useClueStore } from '@/store/useClueStore';
 import { ROLE_MAP, EVENT_TYPE_MAP, URGENT_MAP, AUDIENCE_MAP } from '@/types';
-import type { Clue, TargetAudience } from '@/types';
+import type { Clue, TargetAudience, TemplateCategory } from '@/types';
 import { formatTime, isNightTime, isWeekend, getTimeGreeting, copyToClipboard } from '@/utils';
 import styles from './index.module.scss';
 import classnames from 'classnames';
@@ -25,6 +25,9 @@ const DutyPage: React.FC = () => {
   const updateTaskStatus = useClueStore((s) => s.updateTaskStatus);
   const recordReply = useClueStore((s) => s.recordReply);
   const copyToClipboardUtil = copyToClipboard;
+  const getClosureSummary = useClueStore((s) => s.getClosureSummary);
+  const archiveClue = useClueStore((s) => s.archiveClue);
+  const getLatestFeedbackForClue = useClueStore((s) => s.getLatestFeedbackForClue);
 
   const [expandedClueId, setExpandedClueId] = useState<string>('');
 
@@ -71,7 +74,9 @@ const DutyPage: React.FC = () => {
   };
 
   const handleQuickPacify = (clue: Clue) => {
-    const recommended = getRecommendedTemplates(clue.eventType, 'students');
+    const latestFeedback = getLatestFeedbackForClue(clue.id);
+    const preferCategory: TemplateCategory | undefined = latestFeedback ? 'progress' : undefined;
+    const recommended = getRecommendedTemplates(clue.eventType, 'students', clue.urgentLevel, preferCategory);
     const templateId = recommended.length > 0 ? recommended[0].id : undefined;
     setReplyContext({
       clueId: clue.id,
@@ -128,9 +133,13 @@ const DutyPage: React.FC = () => {
   };
 
   const handleMarkArchived = (clue: Clue) => {
-    updateClueStatus(clue.id, 'archived');
+    handleArchiveClue(clue.id);
+  };
+
+  const handleArchiveClue = (clueId: string) => {
+    archiveClue(clueId);
     setExpandedClueId('');
-    Taro.showToast({ title: '已闭环归档', icon: 'success' });
+    Taro.showToast({ title: '已归档，记录已保存', icon: 'success' });
   };
 
   const stepStatusMap: Record<string, { label: string; color: string; icon: string }> = {
@@ -278,6 +287,8 @@ const DutyPage: React.FC = () => {
                 repliesByAudience[r.audience].push(r);
               }
             });
+            const summary = getClosureSummary(clue.id);
+            const miniTimelineItems = clue.timeline.slice(-10).reverse();
 
             return (
               <View
@@ -445,7 +456,41 @@ const DutyPage: React.FC = () => {
                   <View className={styles.expandedContent}>
                     <View className={styles.workbenchSection}>
                       <View className={styles.workbenchSectionHeader}>
-                        <Text className={styles.workbenchSectionIcon}>🛠</Text>
+                        <Text className={styles.workbenchSectionIcon}>�</Text>
+                        <Text className={styles.workbenchSectionTitle}>处置状态摘要</Text>
+                      </View>
+                      <View className={styles.summaryGrid}>
+                        <View className={styles.summaryItem} style={{ background: 'rgba(58, 123, 213, 0.08)', borderColor: 'rgba(58, 123, 213, 0.2)' }}>
+                          <Text className={styles.summaryValue} style={{ color: '#3A7BD5' }}>{summary.duration || '0分钟'}</Text>
+                          <Text className={styles.summaryLabel}>🕐 处置时长</Text>
+                        </View>
+                        <View className={styles.summaryItem} style={{ background: 'rgba(139, 92, 246, 0.08)', borderColor: 'rgba(139, 92, 246, 0.2)' }}>
+                          <Text className={styles.summaryValue} style={{ color: '#8B5CF6' }}>
+                            {summary.totalReplies}条
+                            <Text style={{ fontSize: '20rpx', opacity: 0.8 }}>
+                              （学生{summary.replyByAudience.students || 0}/家长{summary.replyByAudience.parents || 0}/公告{summary.replyByAudience.public || 0}）
+                            </Text>
+                          </Text>
+                          <Text className={styles.summaryLabel}>💬 发送回复</Text>
+                        </View>
+                        <View className={styles.summaryItem} style={{ background: 'rgba(34, 197, 94, 0.08)', borderColor: 'rgba(34, 197, 94, 0.2)' }}>
+                          <Text className={styles.summaryValue} style={{ color: '#22C55E' }}>
+                            {summary.completedTasks}/{summary.totalTasks}项
+                          </Text>
+                          <Text className={styles.summaryLabel}>📋 任务完成</Text>
+                        </View>
+                        <View className={styles.summaryItem} style={{ background: 'rgba(245, 166, 35, 0.08)', borderColor: 'rgba(245, 166, 35, 0.2)' }}>
+                          <Text className={styles.summaryValue} style={{ color: '#F5A623' }} numberOfLines={1}>
+                            {summary.latestFeedback ? summary.latestFeedback.slice(0, 20) + (summary.latestFeedback.length > 20 ? '...' : '') : '暂无反馈'}
+                          </Text>
+                          <Text className={styles.summaryLabel}>📝 最新反馈</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <View className={styles.workbenchSection}>
+                      <View className={styles.workbenchSectionHeader}>
+                        <Text className={styles.workbenchSectionIcon}>��</Text>
                         <Text className={styles.workbenchSectionTitle}>下一步处置</Text>
                       </View>
                       <View className={styles.nextStepButtons}>
@@ -543,6 +588,38 @@ const DutyPage: React.FC = () => {
 
                     <View className={styles.workbenchSection}>
                       <View className={styles.workbenchSectionHeader}>
+                        <Text className={styles.workbenchSectionIcon}>🔄</Text>
+                        <Text className={styles.workbenchSectionTitle}>
+                          处置时间线
+                          <Text className={styles.workbenchSectionCount}>（最近{miniTimelineItems.length}条）</Text>
+                        </Text>
+                      </View>
+                      <View className={styles.miniTimeline}>
+                        {miniTimelineItems.length === 0 ? (
+                          <View className={styles.emptySubSection}>
+                            <Text className={styles.emptySubText}>暂无处置记录</Text>
+                          </View>
+                        ) : (
+                          miniTimelineItems.map((item) => (
+                            <View key={item.id} className={styles.miniTimelineItem}>
+                              <View className={styles.miniTimelineDot} />
+                              <View className={styles.miniTimelineContent}>
+                                <View className={styles.miniTimelineHeader}>
+                                  <Text className={styles.miniTimelineAction}>{item.action}</Text>
+                                  <Text className={styles.miniTimelineTime}>{formatTime(item.time)}</Text>
+                                </View>
+                                {item.note && (
+                                  <Text className={styles.miniTimelineNote} numberOfLines={2}>{item.note}</Text>
+                                )}
+                              </View>
+                            </View>
+                          ))
+                        )}
+                      </View>
+                    </View>
+
+                    <View className={styles.workbenchSection}>
+                      <View className={styles.workbenchSectionHeader}>
                         <Text className={styles.workbenchSectionIcon}>✅</Text>
                         <Text className={styles.workbenchSectionTitle}>闭环管理</Text>
                       </View>
@@ -568,9 +645,19 @@ const DutyPage: React.FC = () => {
                           {clue.status === 'archived' ? '✓ 已闭环' : '🎯 闭环归档'}
                         </Button>
                       </View>
+                      <Button
+                        className={classnames(styles.archiveBtn)}
+                        disabled={clue.status === 'archived'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchiveClue(clue.id);
+                        }}
+                      >
+                        {clue.status === 'archived' ? '✓ 已完成归档' : '📦 一键归档（自动生成处置摘要）'}
+                      </Button>
                       <View className={styles.closureHint}>
                         <Text className={styles.closureHintText}>
-                          💡 建议流程：确认所有任务完成 → 标记为已回复 → 闭环归档
+                          💡 建议流程：确认所有任务完成 → 标记为已回复 → 一键归档
                         </Text>
                       </View>
                     </View>

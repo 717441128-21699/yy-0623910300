@@ -25,6 +25,8 @@ const DetailPage: React.FC = () => {
   const tasks = useClueStore((s) => s.tasks);
   const templates = useClueStore((s) => s.templates);
   const setReplyContext = useClueStore((s) => s.setReplyContext);
+  const archiveClue = useClueStore((s) => s.archiveClue);
+  const getClosureSummary = useClueStore((s) => s.getClosureSummary);
 
   const clue = useMemo(() => getClueById(clueId), [clueId, clues]);
   const clueTasks = useMemo(() => getTasksByClueId(clueId), [clueId, tasks]);
@@ -42,8 +44,10 @@ const DetailPage: React.FC = () => {
 
   const recommendedTemplates = useMemo(() => {
     if (!clue) return [];
-    return getRecommendedTemplates(clue.eventType, 'students', clue.urgentLevel);
-  }, [clue, getRecommendedTemplates]);
+    const latestFeedback = getLatestFeedbackForClue(clue.id);
+    const preferCategory = latestFeedback ? 'progress' : undefined;
+    return getRecommendedTemplates(clue.eventType, 'students', clue.urgentLevel, preferCategory);
+  }, [clue, getRecommendedTemplates, getLatestFeedbackForClue]);
 
   const isEmergency = clue?.urgentLevel === 'high';
   const isNight = isNightTime();
@@ -126,9 +130,12 @@ const DetailPage: React.FC = () => {
   };
 
   const handleGoReply = (templateId?: string) => {
+    if (!clue) return;
     let finalTemplateId = templateId;
-    if (!finalTemplateId && clue) {
-      const recommended = getRecommendedTemplates(clue.eventType, 'students', clue.urgentLevel);
+    if (!finalTemplateId) {
+      const latestFeedback = getLatestFeedbackForClue(clue.id);
+      const preferCategory = latestFeedback ? 'progress' : undefined;
+      const recommended = getRecommendedTemplates(clue.eventType, 'students', clue.urgentLevel, preferCategory);
       if (recommended.length > 0) {
         finalTemplateId = recommended[0].id;
       }
@@ -141,6 +148,12 @@ const DetailPage: React.FC = () => {
     Taro.switchTab({ url: '/pages/reply/index' });
   };
 
+  const handleArchive = () => {
+    if (!clue) return;
+    archiveClue(clue.id);
+    Taro.showToast({ title: '已归档', icon: 'success' });
+  };
+
   const handleChangeStatus = () => {
     if (!clue) return;
     const nextMap: Record<string, string> = {
@@ -151,7 +164,11 @@ const DetailPage: React.FC = () => {
     };
     const next = nextMap[clue.status];
     if (next) {
-      updateClueStatus(clue.id, next as any);
+      if (next === 'archived') {
+        archiveClue(clue.id);
+      } else {
+        updateClueStatus(clue.id, next as any);
+      }
       Taro.showToast({ title: '状态已更新', icon: 'success' });
     }
   };
@@ -237,9 +254,13 @@ const DetailPage: React.FC = () => {
                 <View className={styles.stepItem}>
                   <View className={styles.stepNum}>1</View>
                   <View className={styles.stepContent}>
-                    <Text className={styles.stepTitle}>快速安抚</Text>
+                    <Text className={styles.stepTitle}>
+                      {clue && getLatestFeedbackForClue(clue.id) ? '发布进展通报' : '快速安抚'}
+                    </Text>
                     <Text className={styles.stepDesc}>
-                      先在学生群发公告稳住情绪，避免扩散
+                      {clue && getLatestFeedbackForClue(clue.id)
+                        ? '责任部门已反馈，整理为进展通报后同步到各群'
+                        : '先在学生群发公告稳住情绪，避免扩散'}
                     </Text>
                     {recommendedTemplates.length > 0 && (
                       <View className={styles.stepTemplates}>
@@ -340,19 +361,50 @@ const DetailPage: React.FC = () => {
           <Text className={styles.sectionTitle}>处理时间线</Text>
           <View className={styles.timelineCard}>
             <View className={styles.timelineList}>
-              {clue.timeline.map((item) => (
-                <View key={item.id} className={styles.timelineItem}>
-                  <View className={styles.timelineDot} />
-                  <Text className={styles.timelineTitle}>{item.action}</Text>
-                  <Text className={styles.timelineTime}>{formatFullTime(item.time)}</Text>
-                  <TypeTag type="role" value={item.role} size="sm" />
-                  <Text className={styles.timelineOperator}> - {item.operator}</Text>
-                  {item.note && (
-                    <Text className={styles.timelineNote}>{item.note}</Text>
-                  )}
-                </View>
-              ))}
+              {clue.timeline.map((item) => {
+                const isArchiveItem = item.action === '✅ 处置闭环归档';
+                return (
+                  <View
+                    key={item.id}
+                    className={classnames(styles.timelineItem, isArchiveItem && styles.timelineItemArchive)}
+                  >
+                    <View className={classnames(styles.timelineDot, isArchiveItem && styles.timelineDotArchive)} />
+                    <Text className={classnames(styles.timelineTitle, isArchiveItem && styles.timelineTitleArchive)}>
+                      {item.action}
+                    </Text>
+                    <Text className={styles.timelineTime}>{formatFullTime(item.time)}</Text>
+                    <TypeTag type="role" value={item.role} size="sm" />
+                    <Text className={styles.timelineOperator}> - {item.operator}</Text>
+                    {item.note && (
+                      <Text className={classnames(styles.timelineNote, isArchiveItem && styles.timelineNoteArchive)}>
+                        {item.note}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
+            {clue.status === 'archived' && (
+              <View className={styles.closureSummary}>
+                <Text className={styles.closureTitle}>📋 处置复盘摘要</Text>
+                <Text className={styles.closureItem}>🕐 处置时长：{getClosureSummary(clue.id).duration}</Text>
+                <Text className={styles.closureItem}>
+                  💬 发送回复：{getClosureSummary(clue.id).totalReplies}条
+                  （学生{getClosureSummary(clue.id).replyByAudience.students || 0}/
+                  家长{getClosureSummary(clue.id).replyByAudience.parents || 0}/
+                  公告{getClosureSummary(clue.id).replyByAudience.public || 0}）
+                </Text>
+                <Text className={styles.closureItem}>
+                  📋 协同任务：{getClosureSummary(clue.id).totalTasks}项
+                  完成{getClosureSummary(clue.id).completedTasks}项
+                </Text>
+                {getClosureSummary(clue.id).latestFeedback && (
+                  <Text className={styles.closureItem}>
+                    📝 最终反馈：{getClosureSummary(clue.id).latestFeedback}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -361,9 +413,15 @@ const DetailPage: React.FC = () => {
         <Button className={`${styles.btn} ${styles.btnSecondary}`} onClick={handleOpenTaskModal}>
           + 派发任务
         </Button>
-        <Button className={`${styles.btn} ${styles.btnSecondary}`} onClick={handleChangeStatus}>
-          变更状态
-        </Button>
+        {clue.status !== 'archived' && getClosureSummary(clue.id).totalReplies > 0 && getClosureSummary(clue.id).completedTasks > 0 ? (
+          <Button className={`${styles.btn} ${styles.btnArchive}`} onClick={handleArchive}>
+            📦 归档
+          </Button>
+        ) : (
+          <Button className={`${styles.btn} ${styles.btnSecondary}`} onClick={handleChangeStatus}>
+            变更状态
+          </Button>
+        )}
         <Button className={`${styles.btn} ${styles.btnPrimary}`} onClick={handleGoReply}>
           生成回复
         </Button>

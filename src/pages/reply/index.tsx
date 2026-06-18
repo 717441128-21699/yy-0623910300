@@ -22,6 +22,10 @@ const ReplyPage: React.FC = () => {
   const getLatestFeedbackForClue = useClueStore((s) => s.getLatestFeedbackForClue);
   const replyContext = useClueStore((s) => s.replyContext);
   const setReplyContext = useClueStore((s) => s.setReplyContext);
+  const replyDrafts = useClueStore((s) => s.replyDrafts);
+  const setReplyDraft = useClueStore((s) => s.setReplyDraft);
+  const getReplyDraft = useClueStore((s) => s.getReplyDraft);
+  const getFallbackTemplate = useClueStore((s) => s.getFallbackTemplate);
 
   const [selectedClueId, setSelectedClueId] = useState<string>('');
   const [showCluePicker, setShowCluePicker] = useState(false);
@@ -70,16 +74,32 @@ const ReplyPage: React.FC = () => {
     }))
   ];
 
+  const pickTemplateFor = useCallback((clueId: string, audience: TargetAudience): string | null => {
+    const clue = clues.find(c => c.id === clueId);
+    if (!clue) return null;
+    const latestFeedback = getLatestFeedbackForClue(clueId);
+    const preferCategory: TemplateCategory | undefined = latestFeedback ? 'progress' : undefined;
+    const recommended = getRecommendedTemplates(clue.eventType, audience, clue.urgentLevel, preferCategory);
+    if (recommended.length > 0) return recommended[0].id;
+    const fallback = getFallbackTemplate(clue.eventType, audience, preferCategory);
+    return fallback ? fallback.id : null;
+  }, [clues, getRecommendedTemplates, getLatestFeedbackForClue, getFallbackTemplate]);
+
   useEffect(() => {
-    if (selectedTemplate) {
-      const cached = variableCache[selectedTemplate.id] || {};
-      const initialValues: Record<string, string> = {};
-      selectedTemplate.variables.forEach((v) => {
-        initialValues[v] = variableValues[v] || cached[v] || '';
-      });
-      setVariableValues(initialValues);
+    if (!selectedTemplate) return;
+    if (selectedClueId) {
+      const existingDraft = getReplyDraft(selectedClueId, selectedAudience);
+      if (existingDraft && existingDraft.templateId === selectedTemplate.id) {
+        return;
+      }
     }
-  }, [selectedTemplate]);
+    const cached = variableCache[selectedTemplate.id] || {};
+    const initialValues: Record<string, string> = {};
+    selectedTemplate.variables.forEach((v) => {
+      initialValues[v] = variableValues[v] || cached[v] || '';
+    });
+    setVariableValues(initialValues);
+  }, [selectedTemplate, selectedClueId, selectedAudience]);
 
   useEffect(() => {
     if (selectedClue && selectedTemplate) {
@@ -118,12 +138,39 @@ const ReplyPage: React.FC = () => {
   const handleSelectClue = (clue: Clue) => {
     setSelectedClueId(clue.id);
     setShowCluePicker(false);
-    setSelectedTemplateId('');
-    setShowUseMode(false);
-    console.log('[ReplyPage] 选中线索:', clue.title);
+    const existingDraft = getReplyDraft(clue.id, selectedAudience);
+    if (existingDraft && templates.some(t => t.id === existingDraft.templateId)) {
+      setSelectedTemplateId(existingDraft.templateId);
+      setVariableValues(existingDraft.variables);
+      setEditedContent(existingDraft.editedContent);
+      setIsContentEdited(true);
+      setShowUseMode(true);
+    } else {
+      const tplId = pickTemplateFor(clue.id, selectedAudience);
+      if (tplId) {
+        setSelectedTemplateId(tplId);
+        setIsContentEdited(false);
+        setShowUseMode(true);
+        setVariableValues({});
+      } else {
+        setSelectedTemplateId('');
+        setShowUseMode(false);
+      }
+    }
   };
 
   const handleSelectTemplate = (templateId: string) => {
+    if (selectedClueId) {
+      const existingDraft = getReplyDraft(selectedClueId, selectedAudience);
+      if (existingDraft && existingDraft.templateId === templateId) {
+        setVariableValues(existingDraft.variables);
+        setEditedContent(existingDraft.editedContent);
+        setIsContentEdited(true);
+      } else {
+        setVariableValues({});
+        setIsContentEdited(false);
+      }
+    }
     setSelectedTemplateId(templateId);
     setShowUseMode(true);
   };
@@ -171,16 +218,26 @@ const ReplyPage: React.FC = () => {
 
   const handleSwitchAudience = (audience: TargetAudience) => {
     setSelectedAudience(audience);
-    if (selectedClue) {
-      const recommended = getRecommendedTemplates(selectedClue.eventType, audience);
-      if (recommended.length > 0) {
-        setSelectedTemplateId(recommended[0].id);
-        setShowUseMode(true);
-        setIsContentEdited(false);
-      } else {
-        setSelectedTemplateId('');
-        setShowUseMode(false);
-      }
+    if (!selectedClue) {
+      setSelectedTemplateId('');
+      setShowUseMode(false);
+      return;
+    }
+    const existingDraft = getReplyDraft(selectedClue.id, audience);
+    if (existingDraft) {
+      setSelectedTemplateId(existingDraft.templateId);
+      setVariableValues(existingDraft.variables);
+      setEditedContent(existingDraft.editedContent);
+      setIsContentEdited(true);
+      setShowUseMode(true);
+      return;
+    }
+    const tplId = pickTemplateFor(selectedClue.id, audience);
+    if (tplId) {
+      setSelectedTemplateId(tplId);
+      setShowUseMode(true);
+      setIsContentEdited(false);
+      setVariableValues({});
     } else {
       setSelectedTemplateId('');
       setShowUseMode(false);
@@ -239,35 +296,47 @@ const ReplyPage: React.FC = () => {
   }, [selectedClue?.id, selectedTemplate?.id]);
 
   useEffect(() => {
-    if (selectedClue && selectedTemplate) {
-      const recommended = getRecommendedTemplates(selectedClue.eventType, selectedAudience);
-      if (recommended.length > 0 && recommended[0].id === selectedTemplate.id) {
-        setShowUseMode(true);
-      }
-    }
-  }, [selectedClue?.id, selectedTemplate?.id, selectedAudience]);
+    if (!selectedClueId || !selectedAudience || !selectedTemplateId) return;
+    if (!showUseMode) return;
+    setReplyDraft(selectedClueId, selectedAudience, {
+      templateId: selectedTemplateId,
+      variables: variableValues,
+      editedContent
+    });
+  }, [selectedClueId, selectedAudience, selectedTemplateId, variableValues, editedContent, showUseMode]);
 
   useDidShow(() => {
     if (replyContext) {
+      let newClueId = selectedClueId;
+      let newAudience = selectedAudience;
       if (replyContext.clueId && clues.some((c) => c.id === replyContext.clueId)) {
-        setSelectedClueId(replyContext.clueId);
+        newClueId = replyContext.clueId;
+        setSelectedClueId(newClueId);
       }
       if (replyContext.audience) {
-        setSelectedAudience(replyContext.audience);
+        newAudience = replyContext.audience;
+        setSelectedAudience(newAudience);
       }
-      let finalTemplateId = replyContext.templateId;
-      if (!finalTemplateId && replyContext.clueId && replyContext.audience) {
-        const clue = clues.find((c) => c.id === replyContext.clueId);
-        if (clue) {
-          const recommended = getRecommendedTemplates(clue.eventType, replyContext.audience);
-          if (recommended.length > 0) {
-            finalTemplateId = recommended[0].id;
-          }
+      let finalTemplateId: string | null = replyContext.templateId || null;
+      if (newClueId && (!finalTemplateId || !templates.some(t => t.id === finalTemplateId))) {
+        const existingDraft = getReplyDraft(newClueId, newAudience);
+        if (existingDraft && templates.some(t => t.id === existingDraft.templateId)) {
+          finalTemplateId = existingDraft.templateId;
+          setVariableValues(existingDraft.variables);
+          setEditedContent(existingDraft.editedContent);
+          setIsContentEdited(true);
+        } else {
+          finalTemplateId = pickTemplateFor(newClueId, newAudience);
+          setIsContentEdited(false);
+          setVariableValues({});
         }
       }
-      if (finalTemplateId && templates.some((t) => t.id === finalTemplateId)) {
+      if (finalTemplateId && templates.some(t => t.id === finalTemplateId)) {
         setSelectedTemplateId(finalTemplateId);
         setShowUseMode(true);
+      } else {
+        setSelectedTemplateId('');
+        setShowUseMode(false);
       }
       setReplyContext(null);
     }

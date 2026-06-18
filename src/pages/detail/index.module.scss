@@ -643,3 +643,73 @@
   background: $color-divider;
   margin: $spacing-md 0 $spacing-md 60rpx;
 }
+
+.timelineItemArchive {
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: $radius-md;
+  padding: $spacing-sm $spacing-md $spacing-sm 48rpx;
+  margin-left: -32rpx;
+  border: 2rpx solid rgba(34, 197, 94, 0.3);
+}
+
+.timelineDotArchive {
+  background: #22C55E !important;
+  box-shadow: 0 0 0 4rpx rgba(34, 197, 94, 0.25) !important;
+  width: 28rpx !important;
+  height: 28rpx !important;
+  left: -38rpx !important;
+}
+
+.timelineTitleArchive {
+  color: #16A34A !important;
+  font-weight: $font-weight-bold !important;
+}
+
+.timelineNoteArchive {
+  color: #15803D !important;
+  font-weight: $font-weight-medium !important;
+}
+
+.closureSummary {
+  margin-top: $spacing-lg;
+  padding: $spacing-lg;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12) 0%, rgba(34, 197, 94, 0.06) 100%);
+  border-radius: $radius-lg;
+  border: 2rpx solid rgba(34, 197, 94, 0.3);
+}
+
+.closureTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: #15803D;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.closureItem {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.8;
+  display: block;
+  margin-bottom: $spacing-xs;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.btnArchive {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+  color: $color-text-white;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}

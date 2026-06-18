@@ -23,7 +23,8 @@ const STORAGE_KEYS = {
   TEMPLATES: 'yuqing_templates',
   INIT_FLAG: 'yuqing_init_flag',
   VARIABLE_CACHE: 'yuqing_variable_cache',
-  REPLY_LOG: 'yuqing_reply_log'
+  REPLY_LOG: 'yuqing_reply_log',
+  REPLY_DRAFTS: 'yuqing_reply_drafts'
 };
 
 interface PersistState {
@@ -69,13 +70,31 @@ interface ClueState extends PersistState {
   deleteTemplate: (id: string) => void;
   incrementTemplateUsage: (id: string) => void;
   getRecommendedRoles: (eventType: EventType, urgentLevel: UrgentLevel) => RoleType[];
-  getRecommendedTemplates: (eventType: EventType, audience?: TargetAudience, urgentLevel?: UrgentLevel) => ReplyTemplate[];
+  getRecommendedTemplates: (eventType: EventType, audience?: TargetAudience, urgentLevel?: UrgentLevel, preferCategory?: TemplateCategory) => ReplyTemplate[];
   replyContext: { clueId: string; audience?: TargetAudience; templateId?: string } | null;
   setReplyContext: (ctx: { clueId: string; audience?: TargetAudience; templateId?: string } | null) => void;
   dispatchTasksForClue: (clueId: string, roles: RoleType[]) => number;
   variableCache: Record<string, Record<string, string>>;
   setVariableCache: (templateId: string, values: Record<string, string>) => void;
   getLatestFeedbackForClue: (clueId: string) => string;
+  replyDrafts: Record<string, {
+    templateId: string;
+    variables: Record<string, string>;
+    editedContent: string;
+    updatedAt: string;
+  }>;
+  setReplyDraft: (clueId: string, audience: TargetAudience, draft: {
+    templateId: string;
+    variables: Record<string, string>;
+    editedContent: string;
+  }) => void;
+  getReplyDraft: (clueId: string, audience: TargetAudience) => {
+    templateId: string;
+    variables: Record<string, string>;
+    editedContent: string;
+    updatedAt: string;
+  } | null;
+  getFallbackTemplate: (eventType: EventType, audience: TargetAudience, preferredCategory?: TemplateCategory) => ReplyTemplate | null;
   replyLog: Array<{
     id: string;
     clueId: string;
@@ -100,6 +119,19 @@ interface ClueState extends PersistState {
     content: string;
     sentAt: string;
   }>;
+  getClosureSummary: (clueId: string) => {
+    totalReplies: number;
+    replyByAudience: Record<string, number>;
+    totalTasks: number;
+    completedTasks: number;
+    pendingTasks: number;
+    confirmations: number;
+    progresses: number;
+    completions: number;
+    duration: string;
+    latestFeedback: string;
+  };
+  archiveClue: (clueId: string) => void;
 }
 
 const loadFromStorage = <T,>(key: string, fallback: T): T => {
@@ -131,6 +163,7 @@ export const useClueStore = create<ClueState>((set, get) => ({
   replyContext: null,
   variableCache: loadFromStorage('yuqing_variable_cache', {}),
   replyLog: loadFromStorage(STORAGE_KEYS.REPLY_LOG, []),
+  replyDrafts: loadFromStorage(STORAGE_KEYS.REPLY_DRAFTS, {}),
   _hydrated: false,
 
   _persist: (key, data) => {
@@ -179,12 +212,14 @@ export const useClueStore = create<ClueState>((set, get) => ({
     Taro.removeStorageSync(STORAGE_KEYS.INIT_FLAG);
     Taro.removeStorageSync(STORAGE_KEYS.VARIABLE_CACHE);
     Taro.removeStorageSync(STORAGE_KEYS.REPLY_LOG);
+    Taro.removeStorageSync(STORAGE_KEYS.REPLY_DRAFTS);
     set({
       clues: mockClues,
       tasks: mockTasks,
       templates: mockTemplates,
       variableCache: {},
       replyLog: [],
+      replyDrafts: {},
       _hydrated: false
     });
     console.log('[Store] 已重置为初始数据');
@@ -472,13 +507,69 @@ export const useClueStore = create<ClueState>((set, get) => ({
     return Array.from(new Set(roles));
   },
 
-  getRecommendedTemplates: (eventType, audience, urgentLevel) => {
+  getRecommendedTemplates: (eventType, audience, urgentLevel, preferCategory) => {
     const { templates } = get();
-    return templates.filter((t) => {
+    let list = templates;
+    if (audience) list = list.filter(t => t.audience === audience);
+    if (list.length === 0) return templates;
+    const filtered = list.filter(t => {
       if (t.eventType && t.eventType !== eventType) return false;
-      if (audience && t.audience !== audience) return false;
+      if (preferCategory && t.category !== preferCategory) return false;
       return true;
-    }).sort((a, b) => b.usageCount - a.usageCount);
+    });
+    const others = list.filter(t => {
+      if (t.eventType && t.eventType !== eventType) return false;
+      if (preferCategory && t.category !== preferCategory) return true;
+      return false;
+    });
+    const withoutCategory = list.filter(t => {
+      if (!preferCategory) return false;
+      return t.eventType === eventType || !t.eventType;
+    });
+    return [...filtered, ...others, ...withoutCategory].sort((a, b) => b.usageCount - a.usageCount);
+  },
+
+  setReplyDraft: (clueId, audience, draft) => set((state) => {
+    const key = `${clueId}__${audience}`;
+    const newDrafts = {
+      ...state.replyDrafts,
+      [key]: { ...draft, updatedAt: new Date().toISOString() }
+    };
+    saveToStorage(STORAGE_KEYS.REPLY_DRAFTS, newDrafts);
+    return { replyDrafts: newDrafts };
+  }),
+
+  getReplyDraft: (clueId, audience) => {
+    const key = `${clueId}__${audience}`;
+    return get().replyDrafts[key] || null;
+  },
+
+  getFallbackTemplate: (eventType, audience, preferredCategory) => {
+    const { templates } = get();
+    const sameAudience = templates.filter(t => t.audience === audience);
+    if (sameAudience.length === 0) {
+      return templates.sort((a, b) => b.usageCount - a.usageCount)[0] || null;
+    }
+    if (preferredCategory) {
+      const preferred = sameAudience
+        .filter(t => t.category === preferredCategory)
+        .sort((a, b) => {
+          const scoreA = a.eventType === eventType ? 10 : !a.eventType ? 5 : 0;
+          const scoreB = b.eventType === eventType ? 10 : !b.eventType ? 5 : 0;
+          if (scoreA !== scoreB) return scoreB - scoreA;
+          return b.usageCount - a.usageCount;
+        });
+      if (preferred.length > 0) return preferred[0];
+    }
+    const sameType = sameAudience
+      .filter(t => t.eventType === eventType)
+      .sort((a, b) => b.usageCount - a.usageCount);
+    if (sameType.length > 0) return sameType[0];
+    const generic = sameAudience
+      .filter(t => !t.eventType)
+      .sort((a, b) => b.usageCount - a.usageCount);
+    if (generic.length > 0) return generic[0];
+    return sameAudience.sort((a, b) => b.usageCount - a.usageCount)[0];
   },
 
   dispatchTasksForClue: (clueId, roles) => {
@@ -564,4 +655,67 @@ export const useClueStore = create<ClueState>((set, get) => ({
     return { replyLog: newLog, clues: newClues };
   }),
   getRepliesByClueId: (clueId) => get().replyLog.filter(r => r.clueId === clueId),
+  getClosureSummary: (clueId) => {
+    const clue = get().getClueById(clueId);
+    const tasks = get().getTasksByClueId(clueId);
+    const replies = get().getRepliesByClueId(clueId);
+    if (!clue) {
+      return { totalReplies: 0, replyByAudience: {}, totalTasks: 0, completedTasks: 0, pendingTasks: 0, confirmations: 0, progresses: 0, completions: 0, duration: '', latestFeedback: '' };
+    }
+    const replyByAudience: Record<string, number> = {};
+    replies.forEach(r => {
+      replyByAudience[r.audience] = (replyByAudience[r.audience] || 0) + 1;
+    });
+    let confirmations = 0, progresses = 0, completions = 0;
+    tasks.forEach(t => {
+      if (t.status === 'confirmed') confirmations++;
+      if (t.status === 'completed') { completions++; confirmations++; }
+      if (t.feedbackAt && t.status !== 'completed') progresses++;
+      if (t.feedbackAt && t.status === 'completed') progresses++;
+    });
+    const durationMs = Date.now() - new Date(clue.createdAt).getTime();
+    const hours = Math.floor(durationMs / 3600000);
+    const mins = Math.floor((durationMs % 3600000) / 60000);
+    const duration = hours > 0 ? `${hours}小时${mins}分钟` : `${mins}分钟`;
+    const latestFeedback = get().getLatestFeedbackForClue(clueId);
+    return {
+      totalReplies: replies.length,
+      replyByAudience,
+      totalTasks: tasks.length,
+      completedTasks: tasks.filter(t => t.status === 'completed').length,
+      pendingTasks: tasks.filter(t => t.status !== 'completed').length,
+      confirmations,
+      progresses,
+      completions,
+      duration,
+      latestFeedback
+    };
+  },
+  archiveClue: (clueId) => set((state) => {
+    const clue = state.clues.find(c => c.id === clueId);
+    if (!clue) return {};
+    const summary = get().getClosureSummary(clueId);
+    const summaryNote = `回复${summary.totalReplies}条/任务${summary.totalTasks}项/完成${summary.completedTasks}项/用时${summary.duration}`;
+    const newClues = state.clues.map(c =>
+      c.id === clueId
+        ? {
+            ...c,
+            status: 'archived' as ClueStatus,
+            timeline: [
+              ...c.timeline,
+              {
+                id: generateId(),
+                time: new Date().toISOString(),
+                action: '✅ 处置闭环归档',
+                operator: '当前用户',
+                role: 'propaganda' as RoleType,
+                note: summaryNote
+              }
+            ]
+          }
+        : c
+    );
+    saveToStorage(STORAGE_KEYS.CLUES, newClues);
+    return { clues: newClues };
+  }),
 }));
