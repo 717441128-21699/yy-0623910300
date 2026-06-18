@@ -11,6 +11,7 @@ import type {
   TargetAudience,
   RoleType
 } from '@/types';
+import { AUDIENCE_MAP } from '@/types';
 import { mockClues } from '@/data/clues';
 import { mockTasks } from '@/data/tasks';
 import { mockTemplates } from '@/data/templates';
@@ -21,7 +22,8 @@ const STORAGE_KEYS = {
   TASKS: 'yuqing_tasks',
   TEMPLATES: 'yuqing_templates',
   INIT_FLAG: 'yuqing_init_flag',
-  VARIABLE_CACHE: 'yuqing_variable_cache'
+  VARIABLE_CACHE: 'yuqing_variable_cache',
+  REPLY_LOG: 'yuqing_reply_log'
 };
 
 interface PersistState {
@@ -67,13 +69,37 @@ interface ClueState extends PersistState {
   deleteTemplate: (id: string) => void;
   incrementTemplateUsage: (id: string) => void;
   getRecommendedRoles: (eventType: EventType, urgentLevel: UrgentLevel) => RoleType[];
-  getRecommendedTemplates: (eventType: EventType, audience?: TargetAudience) => ReplyTemplate[];
+  getRecommendedTemplates: (eventType: EventType, audience?: TargetAudience, urgentLevel?: UrgentLevel) => ReplyTemplate[];
   replyContext: { clueId: string; audience?: TargetAudience; templateId?: string } | null;
   setReplyContext: (ctx: { clueId: string; audience?: TargetAudience; templateId?: string } | null) => void;
   dispatchTasksForClue: (clueId: string, roles: RoleType[]) => number;
   variableCache: Record<string, Record<string, string>>;
   setVariableCache: (templateId: string, values: Record<string, string>) => void;
   getLatestFeedbackForClue: (clueId: string) => string;
+  replyLog: Array<{
+    id: string;
+    clueId: string;
+    audience: TargetAudience;
+    templateId?: string;
+    content: string;
+    sentAt: string;
+  }>;
+  recordReply: (record: Omit<{
+    id: string;
+    clueId: string;
+    audience: TargetAudience;
+    templateId?: string;
+    content: string;
+    sentAt: string;
+  }, 'id' | 'sentAt'> & { id?: string; sentAt?: string }) => void;
+  getRepliesByClueId: (clueId: string) => Array<{
+    id: string;
+    clueId: string;
+    audience: TargetAudience;
+    templateId?: string;
+    content: string;
+    sentAt: string;
+  }>;
 }
 
 const loadFromStorage = <T,>(key: string, fallback: T): T => {
@@ -104,6 +130,7 @@ export const useClueStore = create<ClueState>((set, get) => ({
   filters: {},
   replyContext: null,
   variableCache: loadFromStorage('yuqing_variable_cache', {}),
+  replyLog: loadFromStorage(STORAGE_KEYS.REPLY_LOG, []),
   _hydrated: false,
 
   _persist: (key, data) => {
@@ -151,11 +178,13 @@ export const useClueStore = create<ClueState>((set, get) => ({
     Taro.removeStorageSync(STORAGE_KEYS.TEMPLATES);
     Taro.removeStorageSync(STORAGE_KEYS.INIT_FLAG);
     Taro.removeStorageSync(STORAGE_KEYS.VARIABLE_CACHE);
+    Taro.removeStorageSync(STORAGE_KEYS.REPLY_LOG);
     set({
       clues: mockClues,
       tasks: mockTasks,
       templates: mockTemplates,
       variableCache: {},
+      replyLog: [],
       _hydrated: false
     });
     console.log('[Store] 已重置为初始数据');
@@ -300,6 +329,7 @@ export const useClueStore = create<ClueState>((set, get) => ({
 
   updateTaskStatus: (id, status, feedback) =>
     set((state) => {
+      const originalTask = state.tasks.find((t) => t.id === id);
       const newTasks = state.tasks.map((t) =>
         t.id === id
           ? {
@@ -311,13 +341,22 @@ export const useClueStore = create<ClueState>((set, get) => ({
           : t
       );
 
-      const task = state.tasks.find((t) => t.id === id);
       let newClues = state.clues;
-      if (task) {
-        const shouldAddTimeline = status === 'completed' || (status === 'confirmed' && feedback);
-        if (shouldAddTimeline) {
+      if (originalTask) {
+        let timelineAction = '';
+        let timelineNote = feedback?.slice(0, 30);
+        
+        if (originalTask.status === 'pending' && status === 'confirmed' && !feedback) {
+          timelineAction = '任务确认';
+        } else if (status === 'confirmed' && feedback) {
+          timelineAction = '任务进展';
+        } else if (status === 'completed') {
+          timelineAction = '任务完成';
+        }
+
+        if (timelineAction) {
           newClues = state.clues.map((c) =>
-            c.id === task.clueId
+            c.id === originalTask.clueId
               ? {
                   ...c,
                   timeline: [
@@ -325,10 +364,10 @@ export const useClueStore = create<ClueState>((set, get) => ({
                     {
                       id: generateId(),
                       time: new Date().toISOString(),
-                      action: status === 'completed' ? '任务完成' : '任务进展',
-                      operator: task.assignee || '责任部门',
-                      role: task.role,
-                      note: feedback?.slice(0, 30)
+                      action: timelineAction,
+                      operator: originalTask.assignee || '责任部门',
+                      role: originalTask.role,
+                      note: timelineNote
                     }
                   ]
                 }
@@ -338,7 +377,7 @@ export const useClueStore = create<ClueState>((set, get) => ({
       }
 
       saveToStorage(STORAGE_KEYS.TASKS, newTasks);
-      if (task) saveToStorage(STORAGE_KEYS.CLUES, newClues);
+      if (originalTask) saveToStorage(STORAGE_KEYS.CLUES, newClues);
       return { tasks: newTasks, clues: newClues };
     }),
 
@@ -433,7 +472,7 @@ export const useClueStore = create<ClueState>((set, get) => ({
     return Array.from(new Set(roles));
   },
 
-  getRecommendedTemplates: (eventType, audience) => {
+  getRecommendedTemplates: (eventType, audience, urgentLevel) => {
     const { templates } = get();
     return templates.filter((t) => {
       if (t.eventType && t.eventType !== eventType) return false;
@@ -490,5 +529,39 @@ export const useClueStore = create<ClueState>((set, get) => ({
     return withFeedback.sort((a, b) =>
       new Date(b.feedbackAt || 0).getTime() - new Date(a.feedbackAt || 0).getTime()
     )[0].feedback || '';
-  }
+  },
+
+  recordReply: (record) => set((state) => {
+    const newEntry = {
+      id: record.id || generateId(),
+      sentAt: record.sentAt || new Date().toISOString(),
+      clueId: record.clueId,
+      audience: record.audience,
+      templateId: record.templateId,
+      content: record.content
+    };
+    const newLog = [newEntry, ...state.replyLog];
+    saveToStorage(STORAGE_KEYS.REPLY_LOG, newLog);
+    const newClues = state.clues.map((c) =>
+      c.id === record.clueId
+        ? {
+            ...c,
+            timeline: [
+              ...c.timeline,
+              {
+                id: generateId(),
+                time: newEntry.sentAt,
+                action: `发送${AUDIENCE_MAP[record.audience]?.label || ''}回复`,
+                operator: '当前用户',
+                role: 'propaganda' as RoleType,
+                note: record.content.slice(0, 30)
+              }
+            ]
+          }
+        : c
+    );
+    saveToStorage(STORAGE_KEYS.CLUES, newClues);
+    return { replyLog: newLog, clues: newClues };
+  }),
+  getRepliesByClueId: (clueId) => get().replyLog.filter(r => r.clueId === clueId),
 }));

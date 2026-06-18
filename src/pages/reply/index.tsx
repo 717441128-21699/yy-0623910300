@@ -16,6 +16,7 @@ const ReplyPage: React.FC = () => {
   const templates = useClueStore((s) => s.templates);
   const getRecommendedTemplates = useClueStore((s) => s.getRecommendedTemplates);
   const incrementTemplateUsage = useClueStore((s) => s.incrementTemplateUsage);
+  const recordReply = useClueStore((s) => s.recordReply);
   const variableCache = useClueStore((s) => s.variableCache);
   const setVariableCache = useClueStore((s) => s.setVariableCache);
   const getLatestFeedbackForClue = useClueStore((s) => s.getLatestFeedbackForClue);
@@ -29,6 +30,8 @@ const ReplyPage: React.FC = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [showUseMode, setShowUseMode] = useState(false);
+  const [editedContent, setEditedContent] = useState<string>('');
+  const [isContentEdited, setIsContentEdited] = useState(false);
 
   const selectedClue = useMemo(
     () => clues.find((c) => c.id === selectedClueId),
@@ -137,20 +140,28 @@ const ReplyPage: React.FC = () => {
 
   const handleCopy = async () => {
     if (!selectedTemplate) return;
-    if (!allVarsFilled) {
-      const res = await Taro.showModal({
+    if (renderedContent.includes('{{')) {
+      await Taro.showModal({
         title: '提示',
-        content: '还有未填变量，是否继续复制？',
-        confirmText: '继续复制',
-        cancelText: '取消'
+        content: '还有未填变量，请补全所有变量后再复制',
+        showCancel: false,
+        confirmText: '知道了'
       });
-      if (!res.confirm) return;
+      Taro.showToast({ title: '请补全所有变量', icon: 'none' });
+      return;
     }
-    const content = renderTemplate(selectedTemplate.content, variableValues);
-    const ok = await copyToClipboard(content);
+    const ok = await copyToClipboard(renderedContent);
     if (ok) {
+      if (selectedClue) {
+        recordReply({
+          clueId: selectedClue.id,
+          audience: selectedAudience,
+          templateId: selectedTemplate?.id,
+          content: renderedContent
+        });
+      }
       incrementTemplateUsage(selectedTemplate.id);
-      Taro.showToast({ title: '已复制到剪贴板', icon: 'success' });
+      Taro.showToast({ title: '已复制，发送记录已保存', icon: 'success' });
     }
   };
 
@@ -160,11 +171,33 @@ const ReplyPage: React.FC = () => {
 
   const handleSwitchAudience = (audience: TargetAudience) => {
     setSelectedAudience(audience);
+    if (selectedClue) {
+      const recommended = getRecommendedTemplates(selectedClue.eventType, audience);
+      if (recommended.length > 0) {
+        setSelectedTemplateId(recommended[0].id);
+        setShowUseMode(true);
+        setIsContentEdited(false);
+      } else {
+        setSelectedTemplateId('');
+        setShowUseMode(false);
+      }
+    } else {
+      setSelectedTemplateId('');
+      setShowUseMode(false);
+    }
   };
+
+  const renderedContent = useMemo(() => {
+    if (!selectedTemplate) return '';
+    if (isContentEdited) {
+      return editedContent;
+    }
+    return renderTemplate(selectedTemplate.content, variableValues);
+  }, [selectedTemplate, isContentEdited, editedContent, variableValues]);
 
   const renderPreviewParts = useCallback(() => {
     if (!selectedTemplate) return [];
-    const content = selectedTemplate.content;
+    const content = renderedContent;
     const parts: { text: string; isVar: boolean; varName?: string }[] = [];
     const regex = /\{\{(\w+)\}\}/g;
     let lastIndex = 0;
@@ -186,17 +219,33 @@ const ReplyPage: React.FC = () => {
       parts.push({ text: content.slice(lastIndex), isVar: false });
     }
     return parts;
-  }, [selectedTemplate, variableValues]);
+  }, [selectedTemplate, variableValues, renderedContent]);
 
   const allVarsFilled = useMemo(() => {
     if (!selectedTemplate) return true;
-    return selectedTemplate.variables.every((v) => variableValues[v]?.trim());
-  }, [selectedTemplate, variableValues]);
+    return !renderedContent.includes('{{');
+  }, [selectedTemplate, renderedContent]);
 
   const unfilledCount = useMemo(() => {
     if (!selectedTemplate) return 0;
     return selectedTemplate.variables.filter((v) => !variableValues[v]?.trim()).length;
   }, [selectedTemplate, variableValues]);
+
+  useEffect(() => {
+    if (selectedClue && selectedTemplate && !isContentEdited) {
+      const defaultContent = renderTemplate(selectedTemplate.content, variableValues);
+      setEditedContent(defaultContent);
+    }
+  }, [selectedClue?.id, selectedTemplate?.id]);
+
+  useEffect(() => {
+    if (selectedClue && selectedTemplate) {
+      const recommended = getRecommendedTemplates(selectedClue.eventType, selectedAudience);
+      if (recommended.length > 0 && recommended[0].id === selectedTemplate.id) {
+        setShowUseMode(true);
+      }
+    }
+  }, [selectedClue?.id, selectedTemplate?.id, selectedAudience]);
 
   useDidShow(() => {
     if (replyContext) {
@@ -206,8 +255,18 @@ const ReplyPage: React.FC = () => {
       if (replyContext.audience) {
         setSelectedAudience(replyContext.audience);
       }
-      if (replyContext.templateId && templates.some((t) => t.id === replyContext.templateId)) {
-        setSelectedTemplateId(replyContext.templateId);
+      let finalTemplateId = replyContext.templateId;
+      if (!finalTemplateId && replyContext.clueId && replyContext.audience) {
+        const clue = clues.find((c) => c.id === replyContext.clueId);
+        if (clue) {
+          const recommended = getRecommendedTemplates(clue.eventType, replyContext.audience);
+          if (recommended.length > 0) {
+            finalTemplateId = recommended[0].id;
+          }
+        }
+      }
+      if (finalTemplateId && templates.some((t) => t.id === finalTemplateId)) {
+        setSelectedTemplateId(finalTemplateId);
         setShowUseMode(true);
       }
       setReplyContext(null);
@@ -325,6 +384,33 @@ const ReplyPage: React.FC = () => {
                   />
                 </View>
               ))}
+            </View>
+          )}
+
+          {showUseMode && selectedTemplate && (
+            <View className={styles.editorCard}>
+              <Text className={styles.cardTitle}>
+                正文编辑
+                {isContentEdited && <Text className={styles.editedBadge}>● 已修改</Text>}
+              </Text>
+              <Text className={styles.editorHint}>可直接修改正文内容，修改后单独保存</Text>
+              <Textarea
+                className={styles.editorTextarea}
+                value={renderedContent}
+                onInput={(e) => {
+                  setEditedContent(e.detail.value);
+                  setIsContentEdited(true);
+                }}
+                maxlength={2000}
+                autoHeight
+                showConfirmBar={false}
+              />
+              {isContentEdited && (
+                <Button className={styles.resetEditorBtn} onClick={() => {
+                  setEditedContent(renderTemplate(selectedTemplate.content, variableValues));
+                  setIsContentEdited(false);
+                }}>恢复默认</Button>
+              )}
             </View>
           )}
 

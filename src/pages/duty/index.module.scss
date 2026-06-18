@@ -125,6 +125,17 @@
   box-shadow: $shadow-card;
   margin-bottom: $spacing-md;
   border-left: 6rpx solid $color-error;
+  transition: all $transition-base;
+}
+
+.urgentCardExpanded {
+  background: linear-gradient(180deg, #FFF5F5 0%, $color-bg-card 30%);
+  border-left: 8rpx solid $color-error;
+  box-shadow: 0 8rpx 32rpx rgba(229, 72, 77, 0.15);
+}
+
+.urgentCardClickable {
+  cursor: pointer;
 }
 
 .urgentCardHeader {
@@ -138,6 +149,19 @@
   display: flex;
   gap: 8rpx;
   flex-wrap: wrap;
+}
+
+.urgentCardHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.expandIcon {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  width: 32rpx;
+  text-align: center;
 }
 
 .stepBadge {
@@ -319,6 +343,242 @@
   font-size: $font-size-xs;
   color: $color-text-secondary;
   line-height: 1.6;
+}
+
+.expandedContent {
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 2rpx dashed $color-border;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.workbenchSection {
+  margin-bottom: $spacing-lg;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.workbenchSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+}
+
+.workbenchSectionIcon {
+  font-size: 32rpx;
+}
+
+.workbenchSectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.workbenchSectionCount {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-weight: normal;
+  margin-left: 4rpx;
+}
+
+.nextStepButtons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+}
+
+.nextStepBtn {
+  @include button-reset;
+  height: 88rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  background: $color-bg-card-secondary;
+  color: $color-text-secondary;
+  border: 2rpx solid $color-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+.nextStepBtnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+  color: $color-text-white;
+  border: none;
+}
+
+.nextStepBtnIcon {
+  font-size: 28rpx;
+}
+
+.nextStepBtnText {
+  font-size: $font-size-sm;
+}
+
+.emptySubSection {
+  padding: $spacing-lg;
+  background: $color-bg-card-secondary;
+  border-radius: $radius-md;
+  text-align: center;
+}
+
+.emptySubText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  line-height: 1.6;
+}
+
+.replyList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.replyGroup {
+  background: $color-bg-card-secondary;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.replyGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.replyGroupBadge {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-button;
+  font-size: 22rpx;
+  font-weight: $font-weight-medium;
+}
+
+.replyGroupCount {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.replyItem {
+  background: $color-bg-card;
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-sm;
+  border: 2rpx solid $color-border;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.replyItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-xs;
+}
+
+.replyItemTime {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.replyCopyBtn {
+  @include button-reset;
+  height: 48rpx;
+  padding: 0 $spacing-sm;
+  border-radius: $radius-button;
+  font-size: 20rpx;
+  background: rgba(58, 123, 213, 0.1);
+  color: #3A7BD5;
+}
+
+.replyItemContent {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  @include text-ellipsis-multi(3);
+}
+
+.taskListInWorkbench {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.closureButtons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.closureBtn {
+  @include button-reset;
+  height: 80rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+  }
+}
+
+.closureBtnReplied {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+  border: 2rpx solid rgba(34, 197, 94, 0.3);
+}
+
+.closureBtnArchived {
+  background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+  color: $color-text-white;
+}
+
+.closureHint {
+  padding: $spacing-sm $spacing-md;
+  background: rgba(139, 92, 246, 0.06);
+  border-radius: $radius-sm;
+  border-left: 4rpx solid $color-purple;
+}
+
+.closureHintText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.5;
 }
 
 .taskCard {

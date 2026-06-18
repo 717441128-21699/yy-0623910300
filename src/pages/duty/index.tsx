@@ -1,12 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import StatusBadge from '@/components/StatusBadge';
 import TypeTag from '@/components/TypeTag';
+import TaskItem from '@/components/TaskItem';
 import { useClueStore } from '@/store/useClueStore';
 import { ROLE_MAP, EVENT_TYPE_MAP, URGENT_MAP, AUDIENCE_MAP } from '@/types';
-import type { Clue } from '@/types';
-import { formatTime, isNightTime, isWeekend, getTimeGreeting } from '@/utils';
+import type { Clue, TargetAudience } from '@/types';
+import { formatTime, isNightTime, isWeekend, getTimeGreeting, copyToClipboard } from '@/utils';
 import styles from './index.module.scss';
 import classnames from 'classnames';
 
@@ -20,6 +21,12 @@ const DutyPage: React.FC = () => {
   const dispatchTasksForClue = useClueStore((s) => s.dispatchTasksForClue);
   const updateClueStatus = useClueStore((s) => s.updateClueStatus);
   const getTasksByClueId = useClueStore((s) => s.getTasksByClueId);
+  const getRepliesByClueId = useClueStore((s) => s.getRepliesByClueId);
+  const updateTaskStatus = useClueStore((s) => s.updateTaskStatus);
+  const recordReply = useClueStore((s) => s.recordReply);
+  const copyToClipboardUtil = copyToClipboard;
+
+  const [expandedClueId, setExpandedClueId] = useState<string>('');
 
   const isNight = isNightTime();
   const isWeekendDay = isWeekend();
@@ -91,12 +98,115 @@ const DutyPage: React.FC = () => {
     Taro.navigateTo({ url: '/pages/create/index' });
   };
 
+  const handleToggleExpand = (clueId: string) => {
+    setExpandedClueId((prev) => (prev === clueId ? '' : clueId));
+  };
+
+  const handleCopyReply = async (reply: {
+    id: string;
+    clueId: string;
+    audience: TargetAudience;
+    templateId?: string;
+    content: string;
+    sentAt: string;
+  }) => {
+    const ok = await copyToClipboardUtil(reply.content);
+    if (ok) {
+      recordReply({
+        clueId: reply.clueId,
+        audience: reply.audience,
+        templateId: reply.templateId,
+        content: reply.content
+      });
+      Taro.showToast({ title: '已复制，记录已更新', icon: 'success' });
+    }
+  };
+
+  const handleMarkReplied = (clue: Clue) => {
+    updateClueStatus(clue.id, 'replied');
+    Taro.showToast({ title: '已标记为已回复', icon: 'success' });
+  };
+
+  const handleMarkArchived = (clue: Clue) => {
+    updateClueStatus(clue.id, 'archived');
+    setExpandedClueId('');
+    Taro.showToast({ title: '已闭环归档', icon: 'success' });
+  };
+
   const stepStatusMap: Record<string, { label: string; color: string; icon: string }> = {
     initial: { label: '待响应', color: '#E5484D', icon: '🔴' },
     dispatched: { label: '已派发', color: '#F5A623', icon: '🟡' },
     progress: { label: '核实中', color: '#3A7BD5', icon: '🔵' },
     feedback: { label: '有反馈', color: '#22C55E', icon: '🟢' },
     done: { label: '已闭环', color: '#718096', icon: '⚪' }
+  };
+
+  const getNextStepButtons = (clue: Clue, stepStatus: string) => {
+    const buttons: { label: string; icon: string; onClick: () => void; primary?: boolean }[] = [];
+
+    switch (stepStatus) {
+      case 'initial':
+        buttons.push({
+          label: '先发安抚',
+          icon: '📝',
+          onClick: () => handleQuickPacify(clue),
+          primary: true
+        });
+        buttons.push({
+          label: '派发核实',
+          icon: '📤',
+          onClick: () => handleQuickDispatch(clue)
+        });
+        break;
+      case 'dispatched':
+        buttons.push({
+          label: '等待反馈中',
+          icon: '⏳',
+          onClick: () => handleGoDetail(clue.id)
+        });
+        buttons.push({
+          label: '先发安抚',
+          icon: '📝',
+          onClick: () => handleQuickPacify(clue),
+          primary: true
+        });
+        break;
+      case 'progress':
+        buttons.push({
+          label: '更新进展',
+          icon: '🔄',
+          onClick: () => handleGoDetail(clue.id),
+          primary: true
+        });
+        buttons.push({
+          label: '发进展回复',
+          icon: '📝',
+          onClick: () => handleQuickPacify(clue)
+        });
+        break;
+      case 'feedback':
+        buttons.push({
+          label: '发进展回复',
+          icon: '📝',
+          onClick: () => handleQuickPacify(clue),
+          primary: true
+        });
+        buttons.push({
+          label: '查看详情',
+          icon: '👁',
+          onClick: () => handleGoDetail(clue.id)
+        });
+        break;
+      case 'done':
+        buttons.push({
+          label: '查看详情',
+          icon: '👁',
+          onClick: () => handleGoDetail(clue.id)
+        });
+        break;
+    }
+
+    return buttons;
   };
 
   return (
@@ -154,136 +264,316 @@ const DutyPage: React.FC = () => {
             const statusInfo = stepStatusMap[stepStatus];
             const recommendedRoles = getRecommendedRoles(clue.eventType, clue.urgentLevel);
             const clueTasks = getTasksByClueId(clue.id);
+            const clueReplies = getRepliesByClueId(clue.id);
+            const isExpanded = expandedClueId === clue.id;
+            const nextButtons = getNextStepButtons(clue, stepStatus);
+
+            const repliesByAudience: Record<string, typeof clueReplies> = {
+              students: [],
+              parents: [],
+              public: []
+            };
+            clueReplies.forEach((r) => {
+              if (repliesByAudience[r.audience]) {
+                repliesByAudience[r.audience].push(r);
+              }
+            });
 
             return (
-              <View key={clue.id} className={styles.urgentCard}>
-                <View className={styles.urgentCardHeader}>
-                  <View className={styles.urgentCardTags}>
-                    <StatusBadge type="urgent" value={clue.urgentLevel} size="sm" />
-                    <StatusBadge type="status" value={clue.status} size="sm" />
-                    <TypeTag type="event" value={clue.eventType} size="sm" />
+              <View
+                key={clue.id}
+                className={classnames(styles.urgentCard, isExpanded && styles.urgentCardExpanded)}
+              >
+                <View onClick={() => handleToggleExpand(clue.id)} className={styles.urgentCardClickable}>
+                  <View className={styles.urgentCardHeader}>
+                    <View className={styles.urgentCardTags}>
+                      <StatusBadge type="urgent" value={clue.urgentLevel} size="sm" />
+                      <StatusBadge type="status" value={clue.status} size="sm" />
+                      <TypeTag type="event" value={clue.eventType} size="sm" />
+                    </View>
+                    <View className={styles.urgentCardHeaderRight}>
+                      <View
+                        className={classnames(styles.stepBadge, styles[`step_${stepStatus}`])}
+                      >
+                        <Text className={styles.stepBadgeIcon}>{statusInfo.icon}</Text>
+                        <Text className={styles.stepBadgeText}>{statusInfo.label}</Text>
+                      </View>
+                      <Text className={styles.expandIcon}>{isExpanded ? '▲' : '▼'}</Text>
+                    </View>
                   </View>
-                  <View
-                    className={classnames(styles.stepBadge, styles[`step_${stepStatus}`])}
-                  >
-                    <Text className={styles.stepBadgeIcon}>{statusInfo.icon}</Text>
-                    <Text className={styles.stepBadgeText}>{statusInfo.label}</Text>
+
+                  <Text className={styles.urgentCardTitle}>{clue.title}</Text>
+                  <Text className={styles.urgentCardDesc} numberOfLines={2}>
+                    {clue.description}
+                  </Text>
+
+                  <View className={styles.urgentCardMeta}>
+                    <Text className={styles.urgentCardTime}>🕐 {formatTime(clue.createdAt)}</Text>
+                    {clue.location && (
+                      <Text className={styles.urgentCardLoc}>📍 {clue.location}</Text>
+                    )}
                   </View>
-                </View>
 
-                <Text className={styles.urgentCardTitle}>{clue.title}</Text>
-                <Text className={styles.urgentCardDesc} numberOfLines={2}>
-                  {clue.description}
-                </Text>
+                  {!isExpanded && (
+                    <View className={styles.stepFlow}>
+                      <View
+                        className={classnames(
+                          styles.flowStep,
+                          stepStatus !== 'initial' && styles.flowStepDone
+                        )}
+                      >
+                        <View className={styles.flowDot}>1</View>
+                        <Text className={styles.flowLabel}>安抚</Text>
+                      </View>
+                      <View className={styles.flowLine} />
+                      <View
+                        className={classnames(
+                          styles.flowStep,
+                          ['dispatched', 'progress', 'feedback', 'done'].includes(stepStatus) &&
+                            styles.flowStepDone
+                        )}
+                      >
+                        <View className={styles.flowDot}>2</View>
+                        <Text className={styles.flowLabel}>派发</Text>
+                      </View>
+                      <View className={styles.flowLine} />
+                      <View
+                        className={classnames(
+                          styles.flowStep,
+                          ['feedback', 'done'].includes(stepStatus) && styles.flowStepDone
+                        )}
+                      >
+                        <View className={styles.flowDot}>3</View>
+                        <Text className={styles.flowLabel}>反馈</Text>
+                      </View>
+                      <View className={styles.flowLine} />
+                      <View
+                        className={classnames(
+                          styles.flowStep,
+                          stepStatus === 'done' && styles.flowStepDone
+                        )}
+                      >
+                        <View className={styles.flowDot}>4</View>
+                        <Text className={styles.flowLabel}>闭环</Text>
+                      </View>
+                    </View>
+                  )}
 
-                <View className={styles.urgentCardMeta}>
-                  <Text className={styles.urgentCardTime}>🕐 {formatTime(clue.createdAt)}</Text>
-                  {clue.location && (
-                    <Text className={styles.urgentCardLoc}>📍 {clue.location}</Text>
+                  {!isExpanded && clueTasks.some((t) => t.feedback) && (
+                    <View className={styles.feedbackHint}>
+                      <Text className={styles.feedbackHintIcon}>💬</Text>
+                      <Text className={styles.feedbackHintText}>
+                        最新反馈：{clueTasks.find((t) => t.feedback)?.feedback?.slice(0, 50)}
+                        {clueTasks.find((t) => t.feedback)?.feedback?.length > 50 ? '...' : ''}
+                      </Text>
+                    </View>
                   )}
                 </View>
 
-                <View className={styles.stepFlow}>
-                  <View
-                    className={classnames(
-                      styles.flowStep,
-                      stepStatus !== 'initial' && styles.flowStepDone
+                {!isExpanded && (
+                  <View className={styles.urgentCardActions}>
+                    {stepStatus === 'initial' && (
+                      <>
+                        <Button
+                          className={classnames(styles.actionBtn, styles.actionPrimary)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickPacify(clue);
+                          }}
+                        >
+                          📝 先发安抚
+                        </Button>
+                        <Button
+                          className={classnames(styles.actionBtn, styles.actionSecondary)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickDispatch(clue);
+                          }}
+                        >
+                          📤 派发核实
+                        </Button>
+                      </>
                     )}
-                  >
-                    <View className={styles.flowDot}>1</View>
-                    <Text className={styles.flowLabel}>安抚</Text>
-                  </View>
-                  <View className={styles.flowLine} />
-                  <View
-                    className={classnames(
-                      styles.flowStep,
-                      ['dispatched', 'progress', 'feedback', 'done'].includes(stepStatus) &&
-                        styles.flowStepDone
-                    )}
-                  >
-                    <View className={styles.flowDot}>2</View>
-                    <Text className={styles.flowLabel}>派发</Text>
-                  </View>
-                  <View className={styles.flowLine} />
-                  <View
-                    className={classnames(
-                      styles.flowStep,
-                      ['feedback', 'done'].includes(stepStatus) && styles.flowStepDone
-                    )}
-                  >
-                    <View className={styles.flowDot}>3</View>
-                    <Text className={styles.flowLabel}>反馈</Text>
-                  </View>
-                  <View className={styles.flowLine} />
-                  <View
-                    className={classnames(
-                      styles.flowStep,
-                      stepStatus === 'done' && styles.flowStepDone
-                    )}
-                  >
-                    <View className={styles.flowDot}>4</View>
-                    <Text className={styles.flowLabel}>闭环</Text>
-                  </View>
-                </View>
-
-                <View className={styles.urgentCardActions}>
-                  {stepStatus === 'initial' && (
-                    <>
-                      <Button
-                        className={classnames(styles.actionBtn, styles.actionPrimary)}
-                        onClick={() => handleQuickPacify(clue)}
-                      >
-                        📝 先发安抚
-                      </Button>
+                    {stepStatus === 'dispatched' && (
                       <Button
                         className={classnames(styles.actionBtn, styles.actionSecondary)}
-                        onClick={() => handleQuickDispatch(clue)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGoDetail(clue.id);
+                        }}
                       >
-                        📤 派发核实
+                        👁 查看进度
                       </Button>
-                    </>
-                  )}
-                  {stepStatus === 'dispatched' && (
-                    <Button
-                      className={classnames(styles.actionBtn, styles.actionSecondary)}
-                      onClick={() => handleGoDetail(clue.id)}
-                    >
-                      👁 查看进度
-                    </Button>
-                  )}
-                  {(stepStatus === 'progress' || stepStatus === 'feedback') && (
-                    <>
-                      <Button
-                        className={classnames(styles.actionBtn, styles.actionPrimary)}
-                        onClick={() => handleQuickPacify(clue)}
-                      >
-                        📝 发进展回复
-                      </Button>
+                    )}
+                    {(stepStatus === 'progress' || stepStatus === 'feedback') && (
+                      <>
+                        <Button
+                          className={classnames(styles.actionBtn, styles.actionPrimary)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickPacify(clue);
+                          }}
+                        >
+                          📝 发进展回复
+                        </Button>
+                        <Button
+                          className={classnames(styles.actionBtn, styles.actionSecondary)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleGoDetail(clue.id);
+                          }}
+                        >
+                          👁 查看详情
+                        </Button>
+                      </>
+                    )}
+                    {stepStatus === 'done' && (
                       <Button
                         className={classnames(styles.actionBtn, styles.actionSecondary)}
-                        onClick={() => handleGoDetail(clue.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGoDetail(clue.id);
+                        }}
                       >
-                        👁 查看详情
+                        ✓ 已闭环
                       </Button>
-                    </>
-                  )}
-                  {stepStatus === 'done' && (
-                    <Button
-                      className={classnames(styles.actionBtn, styles.actionSecondary)}
-                      onClick={() => handleGoDetail(clue.id)}
-                    >
-                      ✓ 已闭环
-                    </Button>
-                  )}
-                </View>
+                    )}
+                  </View>
+                )}
 
-                {clueTasks.some((t) => t.feedback) && (
-                  <View className={styles.feedbackHint}>
-                    <Text className={styles.feedbackHintIcon}>💬</Text>
-                    <Text className={styles.feedbackHintText}>
-                      最新反馈：{clueTasks.find((t) => t.feedback)?.feedback?.slice(0, 50)}
-                      {clueTasks.find((t) => t.feedback)?.feedback?.length > 50 ? '...' : ''}
-                    </Text>
+                {isExpanded && (
+                  <View className={styles.expandedContent}>
+                    <View className={styles.workbenchSection}>
+                      <View className={styles.workbenchSectionHeader}>
+                        <Text className={styles.workbenchSectionIcon}>🛠</Text>
+                        <Text className={styles.workbenchSectionTitle}>下一步处置</Text>
+                      </View>
+                      <View className={styles.nextStepButtons}>
+                        {nextButtons.map((btn, idx) => (
+                          <Button
+                            key={idx}
+                            className={classnames(
+                              styles.nextStepBtn,
+                              btn.primary && styles.nextStepBtnPrimary
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              btn.onClick();
+                            }}
+                          >
+                            <Text className={styles.nextStepBtnIcon}>{btn.icon}</Text>
+                            <Text className={styles.nextStepBtnText}>{btn.label}</Text>
+                          </Button>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View className={styles.workbenchSection}>
+                      <View className={styles.workbenchSectionHeader}>
+                        <Text className={styles.workbenchSectionIcon}>💬</Text>
+                        <Text className={styles.workbenchSectionTitle}>
+                          已发回复记录
+                          <Text className={styles.workbenchSectionCount}>（{clueReplies.length}条）</Text>
+                        </Text>
+                      </View>
+                      {clueReplies.length === 0 ? (
+                        <View className={styles.emptySubSection}>
+                          <Text className={styles.emptySubText}>暂无发送记录，点击上方"先发安抚"开始处置</Text>
+                        </View>
+                      ) : (
+                        <View className={styles.replyList}>
+                          {(['students', 'parents', 'public'] as TargetAudience[]).map((aud) =>
+                            repliesByAudience[aud]?.length > 0 ? (
+                              <View key={aud} className={styles.replyGroup}>
+                                <View className={styles.replyGroupHeader}>
+                                  <View
+                                    className={styles.replyGroupBadge}
+                                    style={{ backgroundColor: `${AUDIENCE_MAP[aud].color}15`, color: AUDIENCE_MAP[aud].color }}
+                                  >
+                                    {AUDIENCE_MAP[aud].label}
+                                  </View>
+                                  <Text className={styles.replyGroupCount}>{repliesByAudience[aud].length}条</Text>
+                                </View>
+                                {repliesByAudience[aud].map((reply) => (
+                                  <View key={reply.id} className={styles.replyItem}>
+                                    <View className={styles.replyItemHeader}>
+                                      <Text className={styles.replyItemTime}>{formatTime(reply.sentAt)}</Text>
+                                      <Button
+                                        className={styles.replyCopyBtn}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCopyReply(reply);
+                                        }}
+                                      >
+                                        📋 再次复制
+                                      </Button>
+                                    </View>
+                                    <Text className={styles.replyItemContent} numberOfLines={3}>
+                                      {reply.content}
+                                    </Text>
+                                  </View>
+                                ))}
+                              </View>
+                            ) : null
+                          )}
+                        </View>
+                      )}
+                    </View>
+
+                    <View className={styles.workbenchSection}>
+                      <View className={styles.workbenchSectionHeader}>
+                        <Text className={styles.workbenchSectionIcon}>📋</Text>
+                        <Text className={styles.workbenchSectionTitle}>
+                          待回收反馈
+                          <Text className={styles.workbenchSectionCount}>（{clueTasks.length}项）</Text>
+                        </Text>
+                      </View>
+                      {clueTasks.length === 0 ? (
+                        <View className={styles.emptySubSection}>
+                          <Text className={styles.emptySubText}>暂无派发任务，点击"派发核实"创建任务</Text>
+                        </View>
+                      ) : (
+                        <View className={styles.taskListInWorkbench}>
+                          {clueTasks.map((task) => (
+                            <TaskItem key={task.id} task={task} showClueTitle={false} />
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    <View className={styles.workbenchSection}>
+                      <View className={styles.workbenchSectionHeader}>
+                        <Text className={styles.workbenchSectionIcon}>✅</Text>
+                        <Text className={styles.workbenchSectionTitle}>闭环管理</Text>
+                      </View>
+                      <View className={styles.closureButtons}>
+                        <Button
+                          className={classnames(styles.closureBtn, styles.closureBtnReplied)}
+                          disabled={clue.status === 'replied' || clue.status === 'archived'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkReplied(clue);
+                          }}
+                        >
+                          {clue.status === 'replied' || clue.status === 'archived' ? '✓ 已标记回复' : '📨 标记为已回复'}
+                        </Button>
+                        <Button
+                          className={classnames(styles.closureBtn, styles.closureBtnArchived)}
+                          disabled={clue.status === 'archived'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkArchived(clue);
+                          }}
+                        >
+                          {clue.status === 'archived' ? '✓ 已闭环' : '🎯 闭环归档'}
+                        </Button>
+                      </View>
+                      <View className={styles.closureHint}>
+                        <Text className={styles.closureHintText}>
+                          💡 建议流程：确认所有任务完成 → 标记为已回复 → 闭环归档
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 )}
               </View>

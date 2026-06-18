@@ -42,7 +42,7 @@ const DetailPage: React.FC = () => {
 
   const recommendedTemplates = useMemo(() => {
     if (!clue) return [];
-    return getRecommendedTemplates(clue.eventType, 'student', clue.urgentLevel);
+    return getRecommendedTemplates(clue.eventType, 'students', clue.urgentLevel);
   }, [clue, getRecommendedTemplates]);
 
   const isEmergency = clue?.urgentLevel === 'high';
@@ -126,10 +126,17 @@ const DetailPage: React.FC = () => {
   };
 
   const handleGoReply = (templateId?: string) => {
+    let finalTemplateId = templateId;
+    if (!finalTemplateId && clue) {
+      const recommended = getRecommendedTemplates(clue.eventType, 'students', clue.urgentLevel);
+      if (recommended.length > 0) {
+        finalTemplateId = recommended[0].id;
+      }
+    }
     setReplyContext({
       clueId,
       audience: 'students',
-      templateId: templateId || undefined
+      templateId: finalTemplateId
     });
     Taro.switchTab({ url: '/pages/reply/index' });
   };
