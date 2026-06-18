@@ -6,7 +6,8 @@ export default defineAppConfig({
     'pages/stats/index',
     'pages/detail/index',
     'pages/create/index',
-    'pages/template-edit/index'
+    'pages/template-edit/index',
+    'pages/duty/index'
   ],
   window: {
     backgroundTextStyle: 'light',

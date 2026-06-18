@@ -20,7 +20,8 @@ const STORAGE_KEYS = {
   CLUES: 'yuqing_clues',
   TASKS: 'yuqing_tasks',
   TEMPLATES: 'yuqing_templates',
-  INIT_FLAG: 'yuqing_init_flag'
+  INIT_FLAG: 'yuqing_init_flag',
+  VARIABLE_CACHE: 'yuqing_variable_cache'
 };
 
 interface PersistState {
@@ -67,7 +68,12 @@ interface ClueState extends PersistState {
   incrementTemplateUsage: (id: string) => void;
   getRecommendedRoles: (eventType: EventType, urgentLevel: UrgentLevel) => RoleType[];
   getRecommendedTemplates: (eventType: EventType, audience?: TargetAudience) => ReplyTemplate[];
+  replyContext: { clueId: string; audience?: TargetAudience; templateId?: string } | null;
+  setReplyContext: (ctx: { clueId: string; audience?: TargetAudience; templateId?: string } | null) => void;
   dispatchTasksForClue: (clueId: string, roles: RoleType[]) => number;
+  variableCache: Record<string, Record<string, string>>;
+  setVariableCache: (templateId: string, values: Record<string, string>) => void;
+  getLatestFeedbackForClue: (clueId: string) => string;
 }
 
 const loadFromStorage = <T,>(key: string, fallback: T): T => {
@@ -96,6 +102,8 @@ export const useClueStore = create<ClueState>((set, get) => ({
   templates: [],
   selectedClueId: null,
   filters: {},
+  replyContext: null,
+  variableCache: loadFromStorage('yuqing_variable_cache', {}),
   _hydrated: false,
 
   _persist: (key, data) => {
@@ -142,10 +150,12 @@ export const useClueStore = create<ClueState>((set, get) => ({
     Taro.removeStorageSync(STORAGE_KEYS.TASKS);
     Taro.removeStorageSync(STORAGE_KEYS.TEMPLATES);
     Taro.removeStorageSync(STORAGE_KEYS.INIT_FLAG);
+    Taro.removeStorageSync(STORAGE_KEYS.VARIABLE_CACHE);
     set({
       clues: mockClues,
       tasks: mockTasks,
       templates: mockTemplates,
+      variableCache: {},
       _hydrated: false
     });
     console.log('[Store] 已重置为初始数据');
@@ -303,25 +313,28 @@ export const useClueStore = create<ClueState>((set, get) => ({
 
       const task = state.tasks.find((t) => t.id === id);
       let newClues = state.clues;
-      if (task && (status === 'completed' || feedback)) {
-        newClues = state.clues.map((c) =>
-          c.id === task.clueId
-            ? {
-                ...c,
-                timeline: [
-                  ...c.timeline,
-                  {
-                    id: generateId(),
-                    time: new Date().toISOString(),
-                    action: status === 'completed' ? '任务完成' : '任务反馈',
-                    operator: task.assignee || '责任部门',
-                    role: task.role,
-                    note: feedback?.slice(0, 30)
-                  }
-                ]
-              }
-            : c
-        );
+      if (task) {
+        const shouldAddTimeline = status === 'completed' || (status === 'confirmed' && feedback);
+        if (shouldAddTimeline) {
+          newClues = state.clues.map((c) =>
+            c.id === task.clueId
+              ? {
+                  ...c,
+                  timeline: [
+                    ...c.timeline,
+                    {
+                      id: generateId(),
+                      time: new Date().toISOString(),
+                      action: status === 'completed' ? '任务完成' : '任务进展',
+                      operator: task.assignee || '责任部门',
+                      role: task.role,
+                      note: feedback?.slice(0, 30)
+                    }
+                  ]
+                }
+              : c
+          );
+        }
       }
 
       saveToStorage(STORAGE_KEYS.TASKS, newTasks);
@@ -460,5 +473,22 @@ export const useClueStore = create<ClueState>((set, get) => ({
 
     console.log('[Store] 自动派发任务:', clue.title, roles.length + '个任务');
     return roles.length;
+  },
+
+  setReplyContext: (ctx) => set({ replyContext: ctx }),
+
+  setVariableCache: (templateId, values) => set((state) => {
+    const newCache = { ...state.variableCache, [templateId]: values };
+    saveToStorage(STORAGE_KEYS.VARIABLE_CACHE, newCache);
+    return { variableCache: newCache };
+  }),
+
+  getLatestFeedbackForClue: (clueId) => {
+    const tasks = get().getTasksByClueId(clueId);
+    const withFeedback = tasks.filter(t => t.feedback);
+    if (withFeedback.length === 0) return '';
+    return withFeedback.sort((a, b) =>
+      new Date(b.feedbackAt || 0).getTime() - new Date(a.feedbackAt || 0).getTime()
+    )[0].feedback || '';
   }
 }));

@@ -1,0 +1,433 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 180rpx;
+}
+
+.headerSection {
+  padding: $spacing-lg $page-padding 0;
+}
+
+.dutyCard {
+  position: relative;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  overflow: hidden;
+  margin-bottom: $spacing-lg;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: $color-text-white;
+}
+
+.dutyCardDecoration {
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 255, 255, 0.06);
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -60rpx;
+    left: -80rpx;
+    width: 180rpx;
+    height: 180rpx;
+    border-radius: $radius-round;
+    background: rgba(139, 92, 246, 0.15);
+  }
+}
+
+.dutyCardContent {
+  position: relative;
+  z-index: 1;
+}
+
+.dutyGreeting {
+  font-size: $font-size-sm;
+  opacity: 0.8;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.dutyTitle {
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.dutySubtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  display: block;
+  margin-bottom: $spacing-lg;
+}
+
+.dutyStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-md;
+}
+
+.dutyStatItem {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  text-align: center;
+}
+
+.dutyStatValue {
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  display: block;
+  line-height: 1.1;
+}
+
+.dutyStatLabel {
+  font-size: 20rpx;
+  opacity: 0.85;
+  display: block;
+  margin-top: $spacing-xs;
+}
+
+.section {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.sectionAction {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.urgentCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  border-left: 6rpx solid $color-error;
+}
+
+.urgentCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.urgentCardTags {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
+.stepBadge {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 16rpx;
+  border-radius: $radius-button;
+  font-size: 22rpx;
+  font-weight: $font-weight-medium;
+}
+
+.stepBadgeIcon {
+  font-size: 20rpx;
+}
+
+.stepBadgeText {
+  font-size: 22rpx;
+  font-weight: $font-weight-medium;
+}
+
+.step_initial {
+  background: rgba(229, 72, 77, 0.1);
+  color: #E5484D;
+}
+
+.step_dispatched {
+  background: rgba(245, 166, 35, 0.1);
+  color: #F5A623;
+}
+
+.step_progress {
+  background: rgba(58, 123, 213, 0.1);
+  color: #3A7BD5;
+}
+
+.step_feedback {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+}
+
+.step_done {
+  background: rgba(113, 128, 150, 0.1);
+  color: #718096;
+}
+
+.urgentCardTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 8rpx;
+  line-height: 1.4;
+}
+
+.urgentCardDesc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  display: block;
+  margin-bottom: $spacing-sm;
+  @include text-ellipsis-multi(2);
+}
+
+.urgentCardMeta {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.urgentCardTime,
+.urgentCardLoc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.stepFlow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+  padding: $spacing-md;
+  background: $color-bg-card-secondary;
+  border-radius: $radius-md;
+}
+
+.flowStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+
+  &.flowStepDone .flowDot {
+    background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+    color: $color-text-white;
+  }
+
+  &.flowStepDone .flowLabel {
+    color: $color-primary;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.flowDot {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: $radius-round;
+  background: $color-border;
+  color: $color-text-tertiary;
+  font-size: 22rpx;
+  font-weight: $font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flowLabel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.flowLine {
+  flex: 1;
+  height: 4rpx;
+  background: $color-border;
+  margin: 0 8rpx;
+  margin-bottom: 28rpx;
+}
+
+.urgentCardActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.actionBtn {
+  @include button-reset;
+  height: $button-height-sm;
+  padding: 0 $spacing-md;
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+.actionPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+  color: $color-text-white;
+}
+
+.actionSecondary {
+  background: $color-bg-card-secondary;
+  color: $color-text-secondary;
+  border: 2rpx solid $color-border;
+}
+
+.feedbackHint {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(34, 197, 94, 0.06);
+  border-radius: $radius-md;
+  border: 2rpx solid rgba(34, 197, 94, 0.15);
+}
+
+.feedbackHintIcon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.feedbackHintText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.6;
+}
+
+.taskCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-sm;
+}
+
+.taskCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.taskCardContent {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: $spacing-sm;
+  line-height: 1.5;
+  @include text-ellipsis-multi(2);
+}
+
+.taskCardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.taskCardAssignee {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.taskCardLink {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.templateCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-sm;
+}
+
+.templateHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.templateTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.templateUsage {
+  font-size: $font-size-xs;
+  color: $color-warning;
+}
+
+.templatePreview {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  display: block;
+  margin-bottom: $spacing-sm;
+  @include text-ellipsis-multi(3);
+}
+
+.templateActions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.allClear {
+  background: $color-bg-card;
+  border-radius: $radius-xl;
+  padding: $spacing-xl * 2;
+  text-align: center;
+  box-shadow: $shadow-card;
+  margin: 0 $page-padding;
+}
+
+.allClearIcon {
+  font-size: 100rpx;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.allClearTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.allClearDesc {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  display: block;
+  line-height: 1.5;
+}

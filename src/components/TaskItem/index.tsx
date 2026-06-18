@@ -17,6 +17,8 @@ interface TaskItemProps {
 const TaskItem: React.FC<TaskItemProps> = ({ task, showClueTitle = true }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [showProgress, setShowProgress] = useState(false);
+  const [progressText, setProgressText] = useState('');
   const updateTaskStatus = useClueStore((s) => s.updateTaskStatus);
 
   const deadlineInfo = formatDeadline(task.deadline);
@@ -27,13 +29,26 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, showClueTitle = true }) => {
     console.log('[TaskItem] 确认任务:', task.id);
   };
 
+  const handleProgress = () => {
+    if (!progressText.trim()) {
+      setShowProgress(true);
+      return;
+    }
+    updateTaskStatus(task.id, 'confirmed', progressText);
+    Taro.showToast({ title: '进展已保存', icon: 'success' });
+    setShowProgress(false);
+    setProgressText('');
+    console.log('[TaskItem] 填写进展:', task.id);
+  };
+
   const handleComplete = () => {
     if (task.status === 'completed') return;
-    if (!feedbackText.trim()) {
+    const completeFeedback = feedbackText.trim() || task.feedback || '';
+    if (!completeFeedback) {
       setShowFeedback(true);
       return;
     }
-    updateTaskStatus(task.id, 'completed', feedbackText);
+    updateTaskStatus(task.id, 'completed', completeFeedback);
     Taro.showToast({ title: '任务已完成', icon: 'success' });
     setShowFeedback(false);
     setFeedbackText('');
@@ -70,7 +85,17 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, showClueTitle = true }) => {
 
       <Text className={styles.content}>{task.content}</Text>
 
-      {task.feedback && (
+      {task.feedback && task.status !== 'completed' && (
+        <View className={styles.progressBox}>
+          <Text className={styles.progressLabel}>🔄 进展更新：</Text>
+          <Text className={styles.progressText}>{task.feedback}</Text>
+          {task.feedbackAt && (
+            <Text className={styles.progressTime}>{formatTime(task.feedbackAt)}</Text>
+          )}
+        </View>
+      )}
+
+      {task.feedback && task.status === 'completed' && (
         <View className={styles.feedbackBox}>
           <Text className={styles.feedbackLabel}>📝 反馈：</Text>
           <Text className={styles.feedbackText}>{task.feedback}</Text>
@@ -92,11 +117,36 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, showClueTitle = true }) => {
         <Text className={styles.createTime}>创建 {formatTime(task.createdAt)}</Text>
       </View>
 
+      {showProgress && (
+        <View className={styles.feedbackForm}>
+          <Input
+            className={styles.feedbackInput}
+            placeholder="请输入进展内容..."
+            value={progressText}
+            onInput={(e) => setProgressText(e.detail.value)}
+          />
+          <View className={styles.feedbackActions}>
+            <Button
+              className={classnames(styles.btn, styles.btnCancel)}
+              onClick={() => setShowProgress(false)}
+            >
+              取消
+            </Button>
+            <Button
+              className={classnames(styles.btn, styles.btnProgress)}
+              onClick={handleProgress}
+            >
+              保存进展
+            </Button>
+          </View>
+        </View>
+      )}
+
       {showFeedback && (
         <View className={styles.feedbackForm}>
           <Input
             className={styles.feedbackInput}
-            placeholder="请输入处理结果反馈..."
+            placeholder={task.feedback ? '可编辑完成反馈（默认使用进展内容）...' : '请输入处理结果反馈...'}
             value={feedbackText}
             onInput={(e) => setFeedbackText(e.detail.value)}
           />
@@ -125,6 +175,14 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, showClueTitle = true }) => {
               onClick={handleConfirm}
             >
               ✓ 确认任务
+            </Button>
+          )}
+          {task.status === 'confirmed' && (
+            <Button
+              className={classnames(styles.actionBtn, styles.actionProgress)}
+              onClick={() => setShowProgress(true)}
+            >
+              📝 填写进展
             </Button>
           )}
           <Button

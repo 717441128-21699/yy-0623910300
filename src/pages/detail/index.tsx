@@ -24,6 +24,7 @@ const DetailPage: React.FC = () => {
   const clues = useClueStore((s) => s.clues);
   const tasks = useClueStore((s) => s.tasks);
   const templates = useClueStore((s) => s.templates);
+  const setReplyContext = useClueStore((s) => s.setReplyContext);
 
   const clue = useMemo(() => getClueById(clueId), [clueId, clues]);
   const clueTasks = useMemo(() => getTasksByClueId(clueId), [clueId, tasks]);
@@ -44,8 +45,21 @@ const DetailPage: React.FC = () => {
     return getRecommendedTemplates(clue.eventType, 'student', clue.urgentLevel);
   }, [clue, getRecommendedTemplates]);
 
-  const isEmergency = clue?.urgentLevel === 'urgent' || clue?.urgentLevel === 'critical';
+  const isEmergency = clue?.urgentLevel === 'high';
   const isNight = isNightTime();
+
+  const adviceConfig = useMemo(() => {
+    if (isEmergency && isNight) {
+      return { icon: '🌙⚡', title: '紧急舆情·夜间处置', desc: '深夜人手有限，建议先发群安抚，再跟进核实' };
+    }
+    if (isEmergency) {
+      return { icon: '⚡', title: '紧急舆情处置建议', desc: '关注度高，建议30分钟内启动响应' };
+    }
+    if (isNight) {
+      return { icon: '🌙', title: '夜间值班处置建议', desc: '深夜人手有限，建议先发群安抚，再跟进核实' };
+    }
+    return { icon: '📋', title: '处置建议', desc: '按步骤处置舆情，确保闭环' };
+  }, [isEmergency, isNight]);
 
   const roleOptions = Object.entries(ROLE_MAP).map(([key, value]) => ({
     key: key as RoleType,
@@ -112,10 +126,12 @@ const DetailPage: React.FC = () => {
   };
 
   const handleGoReply = (templateId?: string) => {
-    const url = templateId
-      ? `/pages/reply/index?clueId=${clueId}&templateId=${templateId}`
-      : `/pages/reply/index?clueId=${clueId}`;
-    Taro.switchTab({ url });
+    setReplyContext({
+      clueId,
+      audience: 'students',
+      templateId: templateId || undefined
+    });
+    Taro.switchTab({ url: '/pages/reply/index' });
   };
 
   const handleChangeStatus = () => {
@@ -196,22 +212,19 @@ const DetailPage: React.FC = () => {
           </View>
         </View>
 
-        {(isEmergency || isNight) && (
-          <View className={styles.adviceSection}>
-            <View className={classnames(styles.adviceCard, isEmergency && styles.adviceUrgent)}>
-              <View className={styles.adviceHeader}>
-                <Text className={styles.adviceIcon}>{isNight ? '🌙' : '⚡'}</Text>
-                <View>
-                  <Text className={styles.adviceTitle}>
-                    {isEmergency ? '紧急舆情处置建议' : '夜间值班处置建议'}
-                  </Text>
-                  <Text className={styles.adviceSubtitle}>
-                    {isNight
-                      ? '深夜人手有限，建议先发群安抚，再跟进核实'
-                      : '关注度高，建议30分钟内启动响应'}
-                  </Text>
-                </View>
+        <View className={styles.adviceSection}>
+          <View className={classnames(styles.adviceCard, isEmergency && styles.adviceUrgent)}>
+            <View className={styles.adviceHeader}>
+              <Text className={styles.adviceIcon}>{adviceConfig.icon}</Text>
+              <View>
+                <Text className={styles.adviceTitle}>
+                  {adviceConfig.title}
+                </Text>
+                <Text className={styles.adviceSubtitle}>
+                  {adviceConfig.desc}
+                </Text>
               </View>
+            </View>
 
               <View className={styles.adviceSteps}>
                 <View className={styles.stepItem}>
@@ -296,7 +309,6 @@ const DetailPage: React.FC = () => {
               </View>
             </View>
           </View>
-        )}
 
         <View className={styles.tasksSection}>
           <View className={styles.sectionHeader}>

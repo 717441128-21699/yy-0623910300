@@ -225,3 +225,42 @@
   background: linear-gradient(135deg, $color-success 0%, #16A34A 100%);
   color: $color-text-white;
 }
+
+.actionProgress {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+}
+
+.progressBox {
+  background: rgba(58, 123, 213, 0.08);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.progressLabel {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.progressText {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: 1.5;
+  display: block;
+}
+
+.progressTime {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  display: block;
+  margin-top: $spacing-xs;
+}
+
+.btnProgress {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+}

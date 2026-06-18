@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Button, Input, Textarea } from '@tarojs/components';
-import Taro, { useDidShow, useRouter } from '@tarojs/taro';
+import Taro, { useDidShow } from '@tarojs/taro';
 import TemplateCard from '@/components/TemplateCard';
 import TypeTag from '@/components/TypeTag';
 import StatusBadge from '@/components/StatusBadge';
@@ -12,11 +12,15 @@ import styles from './index.module.scss';
 import classnames from 'classnames';
 
 const ReplyPage: React.FC = () => {
-  const router = useRouter();
   const clues = useClueStore((s) => s.clues);
   const templates = useClueStore((s) => s.templates);
   const getRecommendedTemplates = useClueStore((s) => s.getRecommendedTemplates);
   const incrementTemplateUsage = useClueStore((s) => s.incrementTemplateUsage);
+  const variableCache = useClueStore((s) => s.variableCache);
+  const setVariableCache = useClueStore((s) => s.setVariableCache);
+  const getLatestFeedbackForClue = useClueStore((s) => s.getLatestFeedbackForClue);
+  const replyContext = useClueStore((s) => s.replyContext);
+  const setReplyContext = useClueStore((s) => s.setReplyContext);
 
   const [selectedClueId, setSelectedClueId] = useState<string>('');
   const [showCluePicker, setShowCluePicker] = useState(false);
@@ -64,22 +68,11 @@ const ReplyPage: React.FC = () => {
   ];
 
   useEffect(() => {
-    const urlClueId = router.params.clueId;
-    const urlTemplateId = router.params.templateId;
-    if (urlClueId && clues.some((c) => c.id === urlClueId)) {
-      setSelectedClueId(urlClueId);
-    }
-    if (urlTemplateId && templates.some((t) => t.id === urlTemplateId)) {
-      setSelectedTemplateId(urlTemplateId);
-      setShowUseMode(true);
-    }
-  }, [router.params, clues, templates]);
-
-  useEffect(() => {
     if (selectedTemplate) {
+      const cached = variableCache[selectedTemplate.id] || {};
       const initialValues: Record<string, string> = {};
       selectedTemplate.variables.forEach((v) => {
-        initialValues[v] = variableValues[v] || '';
+        initialValues[v] = variableValues[v] || cached[v] || '';
       });
       setVariableValues(initialValues);
     }
@@ -106,6 +99,12 @@ const ReplyPage: React.FC = () => {
       }
       autoFill['date'] = formatTime(new Date().toISOString());
 
+      const latestFeedback = getLatestFeedbackForClue(selectedClue.id);
+      if (latestFeedback) {
+        autoFill['feedback'] = latestFeedback;
+        autoFill['progress'] = latestFeedback;
+      }
+
       setVariableValues((prev) => ({
         ...autoFill,
         ...prev
@@ -127,14 +126,26 @@ const ReplyPage: React.FC = () => {
   };
 
   const handleVariableChange = (key: string, value: string) => {
-    setVariableValues((prev) => ({
-      ...prev,
-      [key]: value
-    }));
+    setVariableValues((prev) => {
+      const updated = { ...prev, [key]: value };
+      if (selectedTemplate) {
+        setVariableCache(selectedTemplate.id, updated);
+      }
+      return updated;
+    });
   };
 
   const handleCopy = async () => {
     if (!selectedTemplate) return;
+    if (!allVarsFilled) {
+      const res = await Taro.showModal({
+        title: '提示',
+        content: '还有未填变量，是否继续复制？',
+        confirmText: '继续复制',
+        cancelText: '取消'
+      });
+      if (!res.confirm) return;
+    }
     const content = renderTemplate(selectedTemplate.content, variableValues);
     const ok = await copyToClipboard(content);
     if (ok) {
@@ -149,22 +160,58 @@ const ReplyPage: React.FC = () => {
 
   const handleSwitchAudience = (audience: TargetAudience) => {
     setSelectedAudience(audience);
-    setSelectedTemplateId('');
-    setShowUseMode(false);
   };
 
-  const renderPreview = () => {
-    if (!selectedTemplate) return null;
-    const content = renderTemplate(selectedTemplate.content, variableValues);
-    return content;
-  };
+  const renderPreviewParts = useCallback(() => {
+    if (!selectedTemplate) return [];
+    const content = selectedTemplate.content;
+    const parts: { text: string; isVar: boolean; varName?: string }[] = [];
+    const regex = /\{\{(\w+)\}\}/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ text: content.slice(lastIndex, match.index), isVar: false });
+      }
+      const varName = match[1];
+      const filled = variableValues[varName]?.trim();
+      parts.push({
+        text: filled || `{{${varName}}}`,
+        isVar: !filled,
+        varName
+      });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < content.length) {
+      parts.push({ text: content.slice(lastIndex), isVar: false });
+    }
+    return parts;
+  }, [selectedTemplate, variableValues]);
 
   const allVarsFilled = useMemo(() => {
     if (!selectedTemplate) return true;
     return selectedTemplate.variables.every((v) => variableValues[v]?.trim());
   }, [selectedTemplate, variableValues]);
 
+  const unfilledCount = useMemo(() => {
+    if (!selectedTemplate) return 0;
+    return selectedTemplate.variables.filter((v) => !variableValues[v]?.trim()).length;
+  }, [selectedTemplate, variableValues]);
+
   useDidShow(() => {
+    if (replyContext) {
+      if (replyContext.clueId && clues.some((c) => c.id === replyContext.clueId)) {
+        setSelectedClueId(replyContext.clueId);
+      }
+      if (replyContext.audience) {
+        setSelectedAudience(replyContext.audience);
+      }
+      if (replyContext.templateId && templates.some((t) => t.id === replyContext.templateId)) {
+        setSelectedTemplateId(replyContext.templateId);
+        setShowUseMode(true);
+      }
+      setReplyContext(null);
+    }
     console.log('[ReplyPage] 页面显示，模板数:', templates.length, '线索数:', clues.length);
   });
 
@@ -266,9 +313,11 @@ const ReplyPage: React.FC = () => {
               </Text>
               {selectedTemplate.variables.map((v) => (
                 <View key={v} className={styles.varItem}>
-                  <Text className={styles.varLabel}>{v}</Text>
+                  <Text className={classnames(styles.varLabel, !variableValues[v]?.trim() && styles.varLabelUnfilled)}>
+                    {v}{!variableValues[v]?.trim() && ' *'}
+                  </Text>
                   <Input
-                    className={styles.varInput}
+                    className={classnames(styles.varInput, !variableValues[v]?.trim() && styles.varInputUnfilled)}
                     placeholder={`请输入${v}`}
                     value={variableValues[v] || ''}
                     onInput={(e) => handleVariableChange(v, e.detail.value)}
@@ -287,15 +336,26 @@ const ReplyPage: React.FC = () => {
               </Text>
             </View>
             <View className={styles.previewBox}>
-              <Text className={styles.previewText}>{renderPreview()}</Text>
+              <Text className={styles.previewText}>
+                {renderPreviewParts().map((part, idx) =>
+                  part.isVar ? (
+                    <Text key={idx} className={styles.unfilledVar}>{part.text}</Text>
+                  ) : (
+                    <Text key={idx}>{part.text}</Text>
+                  )
+                )}
+              </Text>
             </View>
           </View>
 
           <Button
-            className={classnames(styles.useBtn, !allVarsFilled && styles.useBtnDisabled)}
+            className={classnames(
+              styles.useBtn,
+              !allVarsFilled && styles.useBtnWarning
+            )}
             onClick={handleCopy}
           >
-            复制到剪贴板
+            {!allVarsFilled ? `复制到剪贴板（${unfilledCount}个变量未填）` : '复制到剪贴板'}
           </Button>
         </View>
       ) : (

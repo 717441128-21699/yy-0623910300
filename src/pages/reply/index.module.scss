@@ -442,6 +442,11 @@
   &.useBtnDisabled {
     opacity: 0.6;
   }
+
+  &.useBtnWarning {
+    background: linear-gradient(135deg, #F5A623 0%, #F97316 100%);
+    box-shadow: 0 6rpx 20rpx rgba(245, 166, 35, 0.3);
+  }
 }
 
 .createFab {
@@ -574,4 +579,20 @@
   font-size: 20rpx;
   color: $color-text-tertiary;
   display: block;
+}
+
+.unfilledVar {
+  color: #E5484D;
+  background: rgba(229, 72, 77, 0.1);
+  border-radius: 4rpx;
+  padding: 0 4rpx;
+  font-weight: $font-weight-medium;
+}
+
+.varLabelUnfilled {
+  color: #E5484D;
+}
+
+.varInputUnfilled {
+  border-color: rgba(229, 72, 77, 0.4);
 }

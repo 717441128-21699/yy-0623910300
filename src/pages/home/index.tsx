@@ -6,6 +6,7 @@ import StatCard from '@/components/StatCard';
 import { useClueStore } from '@/store/useClueStore';
 import { STATUS_MAP, EVENT_TYPE_MAP } from '@/types';
 import type { ClueStatus, EventType } from '@/types';
+import { isNightTime, isWeekend } from '@/utils';
 import styles from './index.module.scss';
 import classnames from 'classnames';
 
@@ -75,6 +76,23 @@ const HomePage: React.FC = () => {
             <View className={styles.urgentAlert}>
               <Text className={styles.alertIcon}>🚨</Text>
               <Text className={styles.alertText}>当前有 {stats.urgent} 条紧急线索待处理</Text>
+            </View>
+          )}
+          {(isNightTime() || isWeekend() || stats.urgent > 0) && (
+            <View
+              className={styles.dutyEntry}
+              onClick={() => Taro.navigateTo({ url: '/pages/duty/index' })}
+            >
+              <Text className={styles.dutyEntryIcon}>
+                {isNightTime() ? '🌙' : isWeekend() ? '📅' : '🚨'}
+              </Text>
+              <View className={styles.dutyEntryInfo}>
+                <Text className={styles.dutyEntryTitle}>
+                  {isNightTime() ? '夜间值班视图' : isWeekend() ? '周末值班视图' : '紧急处置视图'}
+                </Text>
+                <Text className={styles.dutyEntryDesc}>一键按步骤处置紧急舆情</Text>
+              </View>
+              <Text className={styles.dutyEntryArrow}>→</Text>
             </View>
           )}
         </View>
