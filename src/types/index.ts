@@ -119,15 +119,15 @@ export const SOURCE_MAP: Record<ClueSource, { label: string }> = {
   other: { label: '其他渠道' }
 };
 
-export const ROLE_MAP: Record<RoleType, { label: string; department: string }> = {
-  security: { label: '保卫处', department: '保卫处' },
-  logistics: { label: '后勤处', department: '后勤管理处' },
-  counselor: { label: '学院辅导员', department: '各学院学工办' },
-  academic: { label: '教务处', department: '教务处' },
-  propaganda: { label: '宣传部', department: '党委宣传部' },
-  dorm_admin: { label: '宿管中心', department: '学生公寓管理中心' },
-  canteen_admin: { label: '餐饮中心', department: '后勤餐饮服务中心' },
-  leader: { label: '值班领导', department: '校办公室' }
+export const ROLE_MAP: Record<RoleType, { label: string; department: string; icon: string }> = {
+  security: { label: '保卫处', department: '保卫处', icon: '🛡️' },
+  logistics: { label: '后勤处', department: '后勤管理处', icon: '🔧' },
+  counselor: { label: '学院辅导员', department: '各学院学工办', icon: '👨‍🏫' },
+  academic: { label: '教务处', department: '教务处', icon: '📚' },
+  propaganda: { label: '宣传部', department: '党委宣传部', icon: '📣' },
+  dorm_admin: { label: '宿管中心', department: '学生公寓管理中心', icon: '🏠' },
+  canteen_admin: { label: '餐饮中心', department: '后勤餐饮服务中心', icon: '🍽️' },
+  leader: { label: '值班领导', department: '校办公室', icon: '👔' }
 };
 
 export const TEMPLATE_CATEGORY_MAP: Record<TemplateCategory, { label: string; color: string }> = {

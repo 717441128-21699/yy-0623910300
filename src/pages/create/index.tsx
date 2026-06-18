@@ -47,7 +47,7 @@ const CreatePage: React.FC = () => {
       Taro.showToast({ title: '请输入事件描述', icon: 'none' });
       return;
     }
-    addClue({
+    const newClue = addClue({
       title: title.trim(),
       description: description.trim(),
       eventType,
@@ -58,7 +58,11 @@ const CreatePage: React.FC = () => {
     });
     Taro.showToast({ title: '线索登记成功', icon: 'success' });
     console.log('[CreatePage] 登记新线索:', title);
-    setTimeout(() => Taro.navigateBack(), 1000);
+    setTimeout(() => {
+      Taro.redirectTo({
+        url: `/pages/detail/index?id=${newClue.id}`
+      });
+    }, 800);
   };
 
   const handleSaveAndDispatch = () => {

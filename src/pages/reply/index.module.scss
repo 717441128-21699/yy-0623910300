@@ -49,64 +49,128 @@
   line-height: 1.5;
 }
 
-.featureRow {
-  display: flex;
-  gap: $spacing-sm;
-  margin-top: $spacing-lg;
-  position: relative;
-  z-index: 1;
-}
-
-.featureItem {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: $radius-md;
-  padding: $spacing-md $spacing-sm;
-  text-align: center;
-}
-
-.featureIcon {
-  font-size: 36rpx;
-  display: block;
-  margin-bottom: 6rpx;
-}
-
-.featureText {
-  font-size: 20rpx;
-  display: block;
-}
-
-.audienceTabs {
+.clueSelector {
   padding: 0 $page-padding;
   margin-bottom: $spacing-lg;
 }
 
-.audienceTitle {
+.selectorLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  display: block;
+  margin-bottom: $spacing-sm;
+}
+
+.selectClueBtn {
+  background: $color-bg-card;
+  border: 2rpx dashed rgba(139, 92, 246, 0.3);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  text-align: center;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    border-color: $color-purple;
+  }
+}
+
+.selectClueIcon {
+  font-size: 48rpx;
+  display: block;
+  margin-bottom: $spacing-sm;
+}
+
+.selectClueText {
   font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
+  font-weight: $font-weight-medium;
   color: $color-text-primary;
   display: block;
-  margin-bottom: $spacing-md;
+  margin-bottom: 4rpx;
 }
 
-.audienceRow {
+.selectClueHint {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  display: block;
+}
+
+.selectedClueCard {
   display: flex;
-  gap: $spacing-md;
-}
-
-.audienceCard {
-  flex: 1;
+  align-items: center;
   background: $color-bg-card;
   border-radius: $radius-lg;
   padding: $spacing-md;
   box-shadow: $shadow-card;
-  border: 2rpx solid transparent;
+  border: 2rpx solid rgba(139, 92, 246, 0.2);
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.selectedClueInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.selectedClueTags {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: $spacing-xs;
+}
+
+.selectedClueTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+  @include text-ellipsis;
+}
+
+.selectedClueDesc {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  display: block;
+  line-height: 1.5;
+  @include text-ellipsis-multi(2);
+}
+
+.changeClueBtn {
+  flex-shrink: 0;
+  margin-left: $spacing-md;
+  padding: 8rpx 20rpx;
+  background: rgba(139, 92, 246, 0.1);
+  color: $color-purple;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  border-radius: $radius-button;
+}
+
+.audienceTabs {
+  padding: 0 $page-padding;
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+
+.audienceTab {
+  flex: 1;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-sm;
   text-align: center;
+  box-shadow: $shadow-card;
+  border: 2rpx solid transparent;
   transition: all $transition-base;
 
   &.active {
     border-color: $color-purple;
     background: rgba(139, 92, 246, 0.08);
+    transform: translateY(-2rpx);
+    box-shadow: 0 6rpx 20rpx rgba(139, 92, 246, 0.15);
   }
 
   &:active {
@@ -114,35 +178,25 @@
   }
 }
 
-.audienceIcon {
-  font-size: 48rpx;
+.audienceTabIcon {
+  font-size: 36rpx;
   display: block;
-  margin-bottom: $spacing-xs;
+  margin-bottom: 6rpx;
 }
 
-.audienceLabel {
-  font-size: $font-size-sm;
+.audienceTabText {
+  font-size: $font-size-xs;
   font-weight: $font-weight-medium;
-  color: $color-text-primary;
-  display: block;
+  color: $color-text-secondary;
+
+  .active & {
+    color: $color-purple;
+  }
 }
 
 .categorySection {
   padding: 0 $page-padding;
   margin-bottom: $spacing-lg;
-}
-
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: $spacing-md;
-}
-
-.sectionTitle {
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
-  color: $color-text-primary;
 }
 
 .categoryScroll {
@@ -250,6 +304,146 @@
   line-height: 1.5;
 }
 
+.useModeSection {
+  padding: 0 $page-padding;
+}
+
+.useModeHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.useModeTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  display: block;
+}
+
+.useModeSubtitle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  display: block;
+  margin-top: 4rpx;
+}
+
+.closeUseMode {
+  font-size: $font-size-sm;
+  color: $color-purple;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+}
+
+.variablesCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.cardTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.varItem {
+  margin-bottom: $spacing-md;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.varLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+  display: block;
+  margin-bottom: $spacing-xs;
+  font-family: $font-family-mono;
+}
+
+.varInput {
+  background: $color-bg-card-secondary;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all $transition-base;
+
+  &:focus {
+    border-color: $color-purple;
+    background: $color-bg-card;
+  }
+}
+
+.previewCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.copyBtn {
+  font-size: $font-size-sm;
+  color: $color-purple;
+  font-weight: $font-weight-medium;
+}
+
+.previewBox {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.06) 0%, rgba(58, 123, 213, 0.05) 100%);
+  border: 2rpx dashed rgba(139, 92, 246, 0.25);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  min-height: 200rpx;
+}
+
+.previewText {
+  font-size: $font-size-sm;
+  line-height: 1.7;
+  color: $color-text-primary;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.useBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-lg;
+  background: linear-gradient(135deg, $color-purple 0%, $color-primary 100%);
+  color: $color-text-white;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-button;
+  box-shadow: 0 6rpx 20rpx rgba(139, 92, 246, 0.3);
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+
+  &.useBtnDisabled {
+    opacity: 0.6;
+  }
+}
+
 .createFab {
   position: fixed;
   right: $spacing-lg;
@@ -279,4 +473,105 @@
   font-size: $font-size-sm;
   font-weight: $font-weight-semibold;
   color: $color-text-white;
+}
+
+.modalMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modalContent {
+  width: 100%;
+  max-height: 80vh;
+  background: $color-bg-page;
+  border-radius: $radius-xl $radius-xl 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  background: $color-bg-card;
+  border-bottom: 1rpx solid $color-divider;
+  border-radius: $radius-xl $radius-xl 0 0;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.modalClose {
+  font-size: 36rpx;
+  color: $color-text-tertiary;
+  line-height: 1;
+}
+
+.modalBody {
+  flex: 1;
+  padding: $spacing-md $page-padding;
+  -webkit-overflow-scrolling: touch;
+  max-height: 70vh;
+}
+
+.cluePickerItem {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  margin-bottom: $spacing-sm;
+  box-shadow: $shadow-card;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &.cluePickerSelected {
+    border-color: $color-purple;
+    background: rgba(139, 92, 246, 0.04);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.cluePickerTags {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: $spacing-xs;
+}
+
+.cluePickerTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 6rpx;
+  @include text-ellipsis;
+}
+
+.cluePickerDesc {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  display: block;
+  margin-bottom: $spacing-xs;
+  @include text-ellipsis-multi(2);
+}
+
+.cluePickerTime {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+  display: block;
 }

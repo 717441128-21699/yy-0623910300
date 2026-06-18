@@ -1,11 +1,37 @@
 import { create } from 'zustand';
-import type { Clue, Task, ReplyTemplate, ClueStatus, EventType, UrgentLevel, TemplateCategory, TargetAudience } from '@/types';
+import Taro from '@tarojs/taro';
+import type {
+  Clue,
+  Task,
+  ReplyTemplate,
+  ClueStatus,
+  EventType,
+  UrgentLevel,
+  TemplateCategory,
+  TargetAudience,
+  RoleType
+} from '@/types';
 import { mockClues } from '@/data/clues';
 import { mockTasks } from '@/data/tasks';
 import { mockTemplates } from '@/data/templates';
-import { generateId } from '@/utils';
+import { generateId, generateTaskContent } from '@/utils';
 
-interface ClueState {
+const STORAGE_KEYS = {
+  CLUES: 'yuqing_clues',
+  TASKS: 'yuqing_tasks',
+  TEMPLATES: 'yuqing_templates',
+  INIT_FLAG: 'yuqing_init_flag'
+};
+
+interface PersistState {
+  _hydrated: boolean;
+  _persist: (key: string, data: unknown) => void;
+  _load: <T>(key: string, fallback: T) => T;
+  hydrateFromStorage: () => void;
+  resetAllData: () => void;
+}
+
+interface ClueState extends PersistState {
   clues: Clue[];
   tasks: Task[];
   templates: ReplyTemplate[];
@@ -22,9 +48,9 @@ interface ClueState {
   getTasksByClueId: (clueId: string) => Task[];
   getTasksByStatus: (status: Task['status']) => Task[];
   getPendingTaskCount: () => number;
-  addClue: (clue: Partial<Clue>) => void;
+  addClue: (clue: Partial<Clue>) => Clue;
   updateClueStatus: (id: string, status: ClueStatus) => void;
-  addTask: (task: Partial<Task>) => void;
+  addTask: (task: Partial<Task>) => Task;
   updateTaskStatus: (id: string, status: Task['status'], feedback?: string) => void;
   getStats: () => {
     total: number;
@@ -39,14 +65,91 @@ interface ClueState {
   updateTemplate: (id: string, updates: Partial<ReplyTemplate>) => void;
   deleteTemplate: (id: string) => void;
   incrementTemplateUsage: (id: string) => void;
+  getRecommendedRoles: (eventType: EventType, urgentLevel: UrgentLevel) => RoleType[];
+  getRecommendedTemplates: (eventType: EventType, audience?: TargetAudience) => ReplyTemplate[];
+  dispatchTasksForClue: (clueId: string, roles: RoleType[]) => number;
 }
 
+const loadFromStorage = <T,>(key: string, fallback: T): T => {
+  try {
+    const data = Taro.getStorageSync(key);
+    if (data) {
+      return JSON.parse(data) as T;
+    }
+  } catch (e) {
+    console.warn('[Store] 读取本地存储失败:', key, e);
+  }
+  return fallback;
+};
+
+const saveToStorage = (key: string, data: unknown): void => {
+  try {
+    Taro.setStorageSync(key, JSON.stringify(data));
+  } catch (e) {
+    console.warn('[Store] 保存本地存储失败:', key, e);
+  }
+};
+
 export const useClueStore = create<ClueState>((set, get) => ({
-  clues: mockClues,
-  tasks: mockTasks,
-  templates: mockTemplates,
+  clues: [],
+  tasks: [],
+  templates: [],
   selectedClueId: null,
   filters: {},
+  _hydrated: false,
+
+  _persist: (key, data) => {
+    saveToStorage(key, data);
+  },
+
+  _load: (key, fallback) => {
+    return loadFromStorage(key, fallback);
+  },
+
+  hydrateFromStorage: () => {
+    if (get()._hydrated) return;
+
+    const hasInit = Taro.getStorageSync(STORAGE_KEYS.INIT_FLAG);
+    let clues: Clue[];
+    let tasks: Task[];
+    let templates: ReplyTemplate[];
+
+    if (hasInit) {
+      clues = loadFromStorage(STORAGE_KEYS.CLUES, mockClues);
+      tasks = loadFromStorage(STORAGE_KEYS.TASKS, mockTasks);
+      templates = loadFromStorage(STORAGE_KEYS.TEMPLATES, mockTemplates);
+    } else {
+      clues = mockClues;
+      tasks = mockTasks;
+      templates = mockTemplates;
+      saveToStorage(STORAGE_KEYS.CLUES, clues);
+      saveToStorage(STORAGE_KEYS.TASKS, tasks);
+      saveToStorage(STORAGE_KEYS.TEMPLATES, templates);
+      Taro.setStorageSync(STORAGE_KEYS.INIT_FLAG, '1');
+    }
+
+    set({
+      clues,
+      tasks,
+      templates,
+      _hydrated: true
+    });
+    console.log('[Store] 数据已从本地存储加载', clues.length + '条线索，' + tasks.length + '个任务，' + templates.length + '个模板');
+  },
+
+  resetAllData: () => {
+    Taro.removeStorageSync(STORAGE_KEYS.CLUES);
+    Taro.removeStorageSync(STORAGE_KEYS.TASKS);
+    Taro.removeStorageSync(STORAGE_KEYS.TEMPLATES);
+    Taro.removeStorageSync(STORAGE_KEYS.INIT_FLAG);
+    set({
+      clues: mockClues,
+      tasks: mockTasks,
+      templates: mockTemplates,
+      _hydrated: false
+    });
+    console.log('[Store] 已重置为初始数据');
+  },
 
   setFilters: (filters) => set((state) => ({
     filters: { ...state.filters, ...filters }
@@ -84,38 +187,43 @@ export const useClueStore = create<ClueState>((set, get) => ({
   getPendingTaskCount: () =>
     get().tasks.filter((t) => t.status === 'pending' || t.status === 'confirmed').length,
 
-  addClue: (clue) =>
-    set((state) => ({
-      clues: [
+  addClue: (clue) => {
+    const newClue: Clue = {
+      id: generateId(),
+      title: clue.title || '未命名线索',
+      description: clue.description || '',
+      eventType: clue.eventType || 'other',
+      status: 'pending',
+      urgentLevel: clue.urgentLevel || 'medium',
+      source: clue.source || 'other',
+      createdAt: new Date().toISOString(),
+      taskIds: [],
+      timeline: [
         {
           id: generateId(),
-          title: clue.title || '未命名线索',
-          description: clue.description || '',
-          eventType: clue.eventType || 'other',
-          status: 'pending',
-          urgentLevel: clue.urgentLevel || 'medium',
-          source: clue.source || 'other',
-          createdAt: new Date().toISOString(),
-          taskIds: [],
-          timeline: [
-            {
-              id: generateId(),
-              time: new Date().toISOString(),
-              action: '线索登记',
-              operator: '当前用户',
-              role: 'propaganda',
-              note: '手动创建'
-            }
-          ],
-          ...clue
-        } as Clue,
-        ...state.clues
-      ]
-    })),
+          time: new Date().toISOString(),
+          action: '线索登记',
+          operator: '当前用户',
+          role: 'propaganda',
+          note: clue.source ? undefined : '手动创建'
+        }
+      ],
+      ...clue
+    } as Clue;
+
+    set((state) => {
+      const newClues = [newClue, ...state.clues];
+      saveToStorage(STORAGE_KEYS.CLUES, newClues);
+      return { clues: newClues };
+    });
+
+    console.log('[Store] 新增线索:', newClue.title);
+    return newClue;
+  },
 
   updateClueStatus: (id, status) =>
-    set((state) => ({
-      clues: state.clues.map((c) =>
+    set((state) => {
+      const newClues = state.clues.map((c) =>
         c.id === id
           ? {
               ...c,
@@ -132,35 +240,57 @@ export const useClueStore = create<ClueState>((set, get) => ({
               ]
             }
           : c
-      )
-    })),
-
-  addTask: (task) =>
-    set((state) => {
-      const newTask: Task = {
-        id: generateId(),
-        clueId: task.clueId || '',
-        clueTitle: task.clueTitle || '',
-        role: task.role || 'counselor',
-        assignee: task.assignee || '',
-        content: task.content || '',
-        deadline: task.deadline || new Date(Date.now() + 3600000).toISOString(),
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      };
-      return {
-        tasks: [newTask, ...state.tasks],
-        clues: state.clues.map((c) =>
-          c.id === newTask.clueId
-            ? { ...c, taskIds: [...c.taskIds, newTask.id] }
-            : c
-        )
-      };
+      );
+      saveToStorage(STORAGE_KEYS.CLUES, newClues);
+      return { clues: newClues };
     }),
 
+  addTask: (task) => {
+    const newTask: Task = {
+      id: generateId(),
+      clueId: task.clueId || '',
+      clueTitle: task.clueTitle || '',
+      role: task.role || 'counselor',
+      assignee: task.assignee || '',
+      content: task.content || '',
+      deadline: task.deadline || new Date(Date.now() + 3600000).toISOString(),
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    set((state) => {
+      const newTasks = [newTask, ...state.tasks];
+      const newClues = state.clues.map((c) =>
+        c.id === newTask.clueId
+          ? {
+              ...c,
+              taskIds: [...c.taskIds, newTask.id],
+              timeline: [
+                ...c.timeline,
+                {
+                  id: generateId(),
+                  time: new Date().toISOString(),
+                  action: '派发任务',
+                  operator: '当前用户',
+                  role: 'propaganda',
+                  note: `派发给${task.role} - ${task.content?.slice(0, 20)}`
+                }
+              ]
+            }
+          : c
+      );
+      saveToStorage(STORAGE_KEYS.TASKS, newTasks);
+      saveToStorage(STORAGE_KEYS.CLUES, newClues);
+      return { tasks: newTasks, clues: newClues };
+    });
+
+    console.log('[Store] 新增任务:', newTask.content);
+    return newTask;
+  },
+
   updateTaskStatus: (id, status, feedback) =>
-    set((state) => ({
-      tasks: state.tasks.map((t) =>
+    set((state) => {
+      const newTasks = state.tasks.map((t) =>
         t.id === id
           ? {
               ...t,
@@ -169,11 +299,38 @@ export const useClueStore = create<ClueState>((set, get) => ({
               feedbackAt: feedback ? new Date().toISOString() : t.feedbackAt
             }
           : t
-      )
-    })),
+      );
+
+      const task = state.tasks.find((t) => t.id === id);
+      let newClues = state.clues;
+      if (task && (status === 'completed' || feedback)) {
+        newClues = state.clues.map((c) =>
+          c.id === task.clueId
+            ? {
+                ...c,
+                timeline: [
+                  ...c.timeline,
+                  {
+                    id: generateId(),
+                    time: new Date().toISOString(),
+                    action: status === 'completed' ? '任务完成' : '任务反馈',
+                    operator: task.assignee || '责任部门',
+                    role: task.role,
+                    note: feedback?.slice(0, 30)
+                  }
+                ]
+              }
+            : c
+        );
+      }
+
+      saveToStorage(STORAGE_KEYS.TASKS, newTasks);
+      if (task) saveToStorage(STORAGE_KEYS.CLUES, newClues);
+      return { tasks: newTasks, clues: newClues };
+    }),
 
   getStats: () => {
-    const { clues, tasks } = get();
+    const { clues } = get();
     const byType: Record<string, number> = {};
     clues.forEach((c) => {
       byType[c.eventType] = (byType[c.eventType] || 0) + 1;
@@ -191,8 +348,8 @@ export const useClueStore = create<ClueState>((set, get) => ({
   getTemplateById: (id) => get().templates.find((t) => t.id === id),
 
   addTemplate: (template) =>
-    set((state) => ({
-      templates: [
+    set((state) => {
+      const newTemplates = [
         {
           id: `tpl-${Date.now()}`,
           title: template.title || '未命名模板',
@@ -205,12 +362,14 @@ export const useClueStore = create<ClueState>((set, get) => ({
           updatedAt: new Date().toISOString()
         } as ReplyTemplate,
         ...state.templates
-      ]
-    })),
+      ];
+      saveToStorage(STORAGE_KEYS.TEMPLATES, newTemplates);
+      return { templates: newTemplates };
+    }),
 
   updateTemplate: (id, updates) =>
-    set((state) => ({
-      templates: state.templates.map((t) =>
+    set((state) => {
+      const newTemplates = state.templates.map((t) =>
         t.id === id
           ? {
               ...t,
@@ -218,20 +377,88 @@ export const useClueStore = create<ClueState>((set, get) => ({
               updatedAt: new Date().toISOString()
             }
           : t
-      )
-    })),
+      );
+      saveToStorage(STORAGE_KEYS.TEMPLATES, newTemplates);
+      return { templates: newTemplates };
+    }),
 
   deleteTemplate: (id) =>
-    set((state) => ({
-      templates: state.templates.filter((t) => t.id !== id)
-    })),
+    set((state) => {
+      const newTemplates = state.templates.filter((t) => t.id !== id);
+      saveToStorage(STORAGE_KEYS.TEMPLATES, newTemplates);
+      return { templates: newTemplates };
+    }),
 
   incrementTemplateUsage: (id) =>
-    set((state) => ({
-      templates: state.templates.map((t) =>
+    set((state) => {
+      const newTemplates = state.templates.map((t) =>
         t.id === id
           ? { ...t, usageCount: t.usageCount + 1, updatedAt: new Date().toISOString() }
           : t
-      )
-    }))
+      );
+      saveToStorage(STORAGE_KEYS.TEMPLATES, newTemplates);
+      return { templates: newTemplates };
+    }),
+
+  getRecommendedRoles: (eventType, urgentLevel) => {
+    const roleMap: Record<EventType, RoleType[]> = {
+      dorm: ['dorm_admin', 'logistics', 'counselor'],
+      canteen: ['canteen_admin', 'logistics', 'counselor'],
+      exam: ['academic', 'counselor'],
+      conflict: ['security', 'counselor', 'propaganda'],
+      teaching: ['academic', 'counselor'],
+      service: ['logistics', 'counselor'],
+      other: ['counselor', 'propaganda']
+    };
+
+    let roles = roleMap[eventType] || roleMap.other;
+
+    if (urgentLevel === 'high') {
+      roles = [...roles, 'leader'];
+    }
+
+    return Array.from(new Set(roles));
+  },
+
+  getRecommendedTemplates: (eventType, audience) => {
+    const { templates } = get();
+    return templates.filter((t) => {
+      if (t.eventType && t.eventType !== eventType) return false;
+      if (audience && t.audience !== audience) return false;
+      return true;
+    }).sort((a, b) => b.usageCount - a.usageCount);
+  },
+
+  dispatchTasksForClue: (clueId, roles) => {
+    const clue = get().getClueById(clueId);
+    if (!clue) return 0;
+
+    const deadlineMap: Record<RoleType, number> = {
+      security: 30,
+      counselor: 60,
+      logistics: 120,
+      dorm_admin: 60,
+      canteen_admin: 60,
+      academic: 120,
+      propaganda: 60,
+      leader: 30
+    };
+
+    roles.forEach((role) => {
+      const minutes = deadlineMap[role] || 60;
+      const content = generateTaskContent(clue.eventType, role, clue.title);
+      const deadline = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+
+      get().addTask({
+        clueId,
+        clueTitle: clue.title,
+        role,
+        content,
+        deadline
+      });
+    });
+
+    console.log('[Store] 自动派发任务:', clue.title, roles.length + '个任务');
+    return roles.length;
+  }
 }));

@@ -1,16 +1,20 @@
 import React, { useEffect } from 'react';
 import { useDidShow, useDidHide } from '@tarojs/taro';
-// 全局样式
+import { useClueStore } from '@/store/useClueStore';
 import './app.scss';
 
 function App(props) {
-  // 可以使用所有的 React Hooks
-  useEffect(() => {});
+  const hydrateFromStorage = useClueStore((s) => s.hydrateFromStorage);
 
-  // 对应 onShow
-  useDidShow(() => {});
+  useEffect(() => {
+    hydrateFromStorage();
+    console.log('[App] 应用启动，已加载本地存储数据');
+  }, [hydrateFromStorage]);
 
-  // 对应 onHide
+  useDidShow(() => {
+    hydrateFromStorage();
+  });
+
   useDidHide(() => {});
 
   return props.children;

@@ -1,12 +1,14 @@
 @use '@/styles/variables.scss' as *;
 
 .card {
+  position: relative;
   background: $color-bg-card;
   border-radius: $radius-lg;
   padding: $spacing-lg;
   box-shadow: $shadow-card;
   margin-bottom: $spacing-md;
   transition: all $transition-base;
+  overflow: hidden;
 
   &:active {
     transform: translateY(-2rpx);
@@ -16,6 +18,28 @@
   &.cardCompact {
     padding: $spacing-md;
   }
+
+  &.cardRecommend {
+    border: 2rpx solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4rpx 20rpx rgba(139, 92, 246, 0.12);
+  }
+}
+
+.recommendBadge {
+  position: absolute;
+  top: 0;
+  right: $spacing-lg;
+  background: linear-gradient(135deg, $color-purple 0%, $color-primary 100%);
+  color: $color-text-white;
+  padding: 6rpx 20rpx;
+  border-radius: 0 0 $radius-sm $radius-sm;
+  z-index: 1;
+}
+
+.recommendText {
+  font-size: 20rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
 }
 
 .header {

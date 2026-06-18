@@ -13,6 +13,7 @@ interface TemplateCardProps {
   onPreview?: (template: ReplyTemplate) => void;
   compact?: boolean;
   quickFill?: Record<string, string>;
+  showRecommend?: boolean;
 }
 
 const TemplateCard: React.FC<TemplateCardProps> = ({
@@ -20,7 +21,8 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   onUse,
   onPreview,
   compact = false,
-  quickFill
+  quickFill,
+  showRecommend = false
 }) => {
   const previewContent = quickFill
     ? renderTemplate(template.content, quickFill)
@@ -53,7 +55,12 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   };
 
   return (
-    <View className={classnames(styles.card, compact && styles.cardCompact)}>
+    <View className={classnames(styles.card, compact && styles.cardCompact, showRecommend && styles.cardRecommend)}>
+      {showRecommend && (
+        <View className={styles.recommendBadge}>
+          <Text className={styles.recommendText}>推荐</Text>
+        </View>
+      )}
       <View className={styles.header}>
         <View className={styles.tagsRow}>
           <TypeTag type="templateCategory" value={template.category} size="sm" />

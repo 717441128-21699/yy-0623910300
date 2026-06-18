@@ -100,3 +100,23 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     return false;
   }
 };
+
+export const isNightTime = (): boolean => {
+  const hour = new Date().getHours();
+  return hour >= 22 || hour < 6;
+};
+
+export const isWeekend = (): boolean => {
+  const day = new Date().getDay();
+  return day === 0 || day === 6;
+};
+
+export const getTimeGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 9) return '早上好';
+  if (hour >= 9 && hour < 12) return '上午好';
+  if (hour >= 12 && hour < 14) return '中午好';
+  if (hour >= 14 && hour < 18) return '下午好';
+  if (hour >= 18 && hour < 22) return '晚上好';
+  return '夜深了';
+};

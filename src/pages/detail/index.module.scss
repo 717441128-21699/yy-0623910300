@@ -223,3 +223,423 @@
   background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
   color: $color-text-white;
 }
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.addTaskBtn {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.modalMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modalContent {
+  width: 100%;
+  max-height: 85vh;
+  background: $color-bg-card;
+  border-radius: $radius-xl $radius-xl 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-lg;
+  border-bottom: 1rpx solid $color-divider;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.modalClose {
+  font-size: 36rpx;
+  color: $color-text-tertiary;
+  line-height: 1;
+}
+
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: $spacing-lg;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modalFooter {
+  padding: $spacing-md $spacing-lg;
+  padding-bottom: calc($spacing-md + env(safe-area-inset-bottom));
+  border-top: 1rpx solid $color-divider;
+  display: flex;
+  gap: $spacing-md;
+  flex-shrink: 0;
+}
+
+.modalBtn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.modalBtnSecondary {
+  background: $color-bg-card-secondary;
+  color: $color-text-secondary;
+  border: 2rpx solid $color-border;
+}
+
+.modalBtnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+  color: $color-text-white;
+}
+
+.tipsCard {
+  background: linear-gradient(135deg, rgba(30, 90, 168, 0.06) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  border-left: 4rpx solid $color-primary;
+  margin-bottom: $spacing-lg;
+}
+
+.tipsTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.tipsText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  display: block;
+}
+
+.formGroup {
+  margin-bottom: $spacing-lg;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.formLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: $spacing-sm;
+}
+
+.required {
+  color: $color-error;
+  margin-left: 4rpx;
+}
+
+.formInput {
+  background: $color-bg-card-secondary;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  border: 2rpx solid $color-border;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: $color-primary;
+    background: $color-bg-card;
+  }
+}
+
+.formTextarea {
+  @extend .formInput;
+  min-height: 160rpx;
+  line-height: 1.6;
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-sm;
+}
+
+.roleItem {
+  position: relative;
+  padding: $spacing-md;
+  background: $color-bg-card-secondary;
+  border: 2rpx solid transparent;
+  border-radius: $radius-md;
+  transition: all $transition-base;
+
+  &.roleActive {
+    border-color: $color-primary;
+    background: $color-primary-bg;
+  }
+
+  &.roleRecommended {
+    border-color: rgba(139, 92, 246, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.roleName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+
+  .roleActive & {
+    color: $color-primary;
+  }
+}
+
+.roleDept {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  display: block;
+}
+
+.recommendBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4rpx 12rpx;
+  background: linear-gradient(135deg, $color-purple 0%, $color-primary 100%);
+  color: $color-text-white;
+  font-size: 20rpx;
+  border-radius: 0 $radius-md 0 $radius-sm;
+}
+
+.deadlineRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.deadlineItem {
+  padding: 16rpx 24rpx;
+  background: $color-bg-card-secondary;
+  border: 2rpx solid transparent;
+  border-radius: $radius-button;
+  transition: all $transition-base;
+
+  &.deadlineActive {
+    border-color: $color-primary;
+    background: $color-primary-bg;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.deadlineText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  .deadlineActive & {
+    color: $color-primary;
+    font-weight: $font-weight-medium;
+  }
+}
+
+.adviceSection {
+  margin-bottom: $spacing-lg;
+}
+
+.adviceCard {
+  background: linear-gradient(135deg, rgba(30, 90, 168, 0.08) 0%, rgba(139, 92, 246, 0.06) 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  border: 2rpx solid rgba(30, 90, 168, 0.15);
+
+  &.adviceUrgent {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(249, 115, 22, 0.06) 100%);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+}
+
+.adviceHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.adviceIcon {
+  font-size: 48rpx;
+  flex-shrink: 0;
+}
+
+.adviceTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.adviceSubtitle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  display: block;
+}
+
+.adviceSteps {
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+}
+
+.stepItem {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.stepNum {
+  flex-shrink: 0;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+  color: $color-text-white;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.stepTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.stepDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  display: block;
+  margin-bottom: $spacing-sm;
+}
+
+.stepTemplates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: $spacing-sm;
+}
+
+.stepTemplateTag {
+  padding: 8rpx 16rpx;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: $radius-xs;
+  border: 2rpx solid rgba(139, 92, 246, 0.2);
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.stepTemplateText {
+  font-size: 22rpx;
+  color: $color-purple;
+}
+
+.stepRoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: $spacing-sm;
+}
+
+.stepRoleTag {
+  padding: 8rpx 16rpx;
+  background: $color-primary-bg;
+  border-radius: $radius-xs;
+  border: 2rpx solid rgba(30, 90, 168, 0.2);
+}
+
+.stepRoleText {
+  font-size: 22rpx;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.stepBtn {
+  @include button-reset;
+  height: $button-height-sm;
+  padding: 0 $spacing-md;
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+.stepBtnOutline {
+  background: transparent;
+  color: $color-primary;
+  border: 2rpx solid $color-primary;
+}
+
+.stepBtnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+  color: $color-text-white;
+}
+
+.stepDoneText {
+  font-size: $font-size-xs;
+  color: $color-success;
+  font-weight: $font-weight-medium;
+}
+
+.stepDivider {
+  height: 1rpx;
+  background: $color-divider;
+  margin: $spacing-md 0 $spacing-md 60rpx;
+}
