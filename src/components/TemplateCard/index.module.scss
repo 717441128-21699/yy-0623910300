@@ -1,0 +1,146 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  transition: all $transition-base;
+
+  &:active {
+    transform: translateY(-2rpx);
+    box-shadow: $shadow-card-hover;
+  }
+
+  &.cardCompact {
+    padding: $spacing-md;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.tagsRow {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+.usageInfo {
+  flex-shrink: 0;
+}
+
+.usageCount {
+  font-size: 22rpx;
+  color: $color-warning;
+  font-weight: $font-weight-medium;
+}
+
+.title {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  line-height: 1.4;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.previewBox {
+  background: linear-gradient(135deg, $color-primary-bg 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+  border-left: 4rpx solid $color-primary;
+}
+
+.previewText {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  display: block;
+  @include text-ellipsis-multi(6);
+}
+
+.variablesRow {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: $spacing-md;
+  gap: $spacing-xs;
+}
+
+.variablesLabel {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+  line-height: 1.8;
+}
+
+.variablesList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  flex: 1;
+}
+
+.variableTag {
+  background: rgba(30, 90, 168, 0.08);
+  border-radius: $radius-xs;
+  padding: 2rpx 12rpx;
+}
+
+.variableText {
+  font-size: 20rpx;
+  color: $color-primary;
+  font-family: monospace;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.updateTime {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.actions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.btn {
+  @include button-reset;
+  height: $button-height-sm;
+  padding: 0 $spacing-md;
+  border-radius: $radius-button;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+.btnSecondary {
+  background: $color-bg-card-secondary;
+  color: $color-text-secondary;
+  border: 2rpx solid $color-border;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+  color: $color-text-white;
+}

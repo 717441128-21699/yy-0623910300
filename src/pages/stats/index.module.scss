@@ -1,0 +1,298 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.08) 0%, $color-bg-page 25%);
+  padding-bottom: 180rpx;
+}
+
+.headerSection {
+  padding: $spacing-lg $page-padding 0;
+}
+
+.overviewCard {
+  background: linear-gradient(135deg, $color-success 0%, #059669 50%, $color-primary 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  color: $color-text-white;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: $spacing-lg;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -80rpx;
+    right: -80rpx;
+    width: 240rpx;
+    height: 240rpx;
+    border-radius: $radius-round;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -40rpx;
+    left: -40rpx;
+    width: 140rpx;
+    height: 140rpx;
+    border-radius: $radius-round;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.overviewTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  display: block;
+  margin-bottom: $spacing-sm;
+  position: relative;
+  z-index: 1;
+}
+
+.overviewSubtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  display: block;
+  position: relative;
+  z-index: 1;
+  line-height: 1.5;
+}
+
+.overviewStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-top: $spacing-xl;
+  position: relative;
+  z-index: 1;
+}
+
+.overviewItem {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.overviewValue {
+  font-size: 56rpx;
+  font-weight: $font-weight-bold;
+  display: block;
+  line-height: 1.1;
+}
+
+.overviewLabel {
+  font-size: 22rpx;
+  opacity: 0.9;
+  display: block;
+  margin-top: $spacing-xs;
+}
+
+.statsSection {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sectionTag {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  background: $color-bg-card-secondary;
+  padding: 6rpx 18rpx;
+  border-radius: $radius-button;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.typeSection {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.typeCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.typeList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.typeItem {
+  display: flex;
+  align-items: center;
+}
+
+.typeInfo {
+  width: 180rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.typeDot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: $radius-round;
+  margin-right: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.typeLabel {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.typeBarWrap {
+  flex: 1;
+  height: 24rpx;
+  background: $color-bg-card-secondary;
+  border-radius: $radius-round;
+  overflow: hidden;
+  margin: 0 $spacing-md;
+}
+
+.typeBar {
+  height: 100%;
+  border-radius: $radius-round;
+  transition: width 0.5s ease;
+}
+
+.typeValue {
+  width: 80rpx;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.trendSection {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.trendCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.trendBars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 240rpx;
+  padding: $spacing-md 0;
+  gap: 16rpx;
+}
+
+.trendBarItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.trendBar {
+  width: 100%;
+  max-width: 60rpx;
+  background: linear-gradient(180deg, $color-primary 0%, $color-purple 100%);
+  border-radius: $radius-sm $radius-sm 0 0;
+  transition: height 0.5s ease;
+  margin-bottom: $spacing-sm;
+  position: relative;
+
+  &::after {
+    content: attr(data-count);
+    position: absolute;
+    top: -32rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20rpx;
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+    white-space: nowrap;
+  }
+}
+
+.trendLabel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.suggestSection {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.suggestCard {
+  background: linear-gradient(135deg, rgba(30, 90, 168, 0.08) 0%, rgba(139, 92, 246, 0.06) 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  border-left: 4rpx solid $color-primary;
+}
+
+.suggestTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.suggestItem {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: $spacing-sm;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.suggestIcon {
+  font-size: 28rpx;
+  margin-right: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.suggestText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.highlight {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}

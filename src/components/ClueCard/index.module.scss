@@ -1,0 +1,117 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  position: relative;
+  overflow: hidden;
+  transition: all $transition-base;
+  margin-bottom: $spacing-md;
+
+  &:active {
+    transform: translateY(-2rpx);
+    box-shadow: $shadow-card-hover;
+  }
+
+  &.cardUrgent {
+    border: 2rpx solid rgba(229, 72, 77, 0.3);
+  }
+}
+
+.urgentStrip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6rpx;
+  background: linear-gradient(90deg, $color-error 0%, rgba(229, 72, 77, 0.5) 100%);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+  gap: $spacing-sm;
+}
+
+.tagsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  flex: 1;
+}
+
+.title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  line-height: 1.4;
+  display: block;
+  margin-bottom: $spacing-sm;
+}
+
+.description {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  display: block;
+  margin-bottom: $spacing-md;
+  @include text-ellipsis-multi(2);
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+}
+
+.metaIcon {
+  font-size: $font-size-sm;
+  margin-right: 6rpx;
+}
+
+.metaText {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.footer {
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.reporter {
+  display: flex;
+  align-items: center;
+}
+
+.avatarCircle {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-round;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $spacing-sm;
+}
+
+.avatarText {
+  font-size: $font-size-xs;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+}
+
+.reporterName {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}

@@ -1,0 +1,225 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: 200rpx;
+}
+
+.content {
+  padding: $spacing-lg $page-padding 0;
+}
+
+.headerCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.tagsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: $spacing-md;
+}
+
+.title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.4;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.description {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  line-height: 1.7;
+  display: block;
+  white-space: pre-wrap;
+  margin-bottom: $spacing-lg;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+}
+
+.metaIcon {
+  font-size: 28rpx;
+  margin-right: $spacing-sm;
+}
+
+.metaLabel {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  display: block;
+}
+
+.metaValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  display: block;
+  margin-top: 2rpx;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.tasksSection {
+  margin-bottom: $spacing-lg;
+}
+
+.emptyHint {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-xl;
+  text-align: center;
+  box-shadow: $shadow-card;
+}
+
+.emptyIcon {
+  font-size: 64rpx;
+  display: block;
+  margin-bottom: $spacing-sm;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  display: block;
+}
+
+.timelineSection {
+  margin-bottom: $spacing-lg;
+}
+
+.timelineCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.timelineList {
+  position: relative;
+  padding-left: $spacing-lg;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 14rpx;
+    top: 12rpx;
+    bottom: 12rpx;
+    width: 4rpx;
+    background: linear-gradient(180deg, $color-primary 0%, rgba(30, 90, 168, 0.2) 100%);
+    border-radius: $radius-round;
+  }
+}
+
+.timelineItem {
+  position: relative;
+  padding-bottom: $spacing-lg;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.timelineDot {
+  position: absolute;
+  left: -36rpx;
+  top: 6rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  border: 4rpx solid $color-bg-card;
+  box-shadow: 0 0 0 4rpx rgba(30, 90, 168, 0.2);
+}
+
+.timelineTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.timelineTime {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.timelineOperator {
+  font-size: 22rpx;
+  color: $color-primary;
+  display: inline-block;
+  margin-right: $spacing-sm;
+}
+
+.timelineNote {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.5;
+  display: block;
+  margin-top: $spacing-xs;
+}
+
+.bottomBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: $color-bg-card;
+  padding: $spacing-md $page-padding;
+  padding-bottom: calc($spacing-md + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  gap: $spacing-md;
+}
+
+.btn {
+  @include button-reset;
+  flex: 1;
+  height: $button-height-lg;
+  border-radius: $radius-button;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.btnSecondary {
+  background: $color-bg-card-secondary;
+  color: $color-text-secondary;
+  border: 2rpx solid $color-border;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-purple 100%);
+  color: $color-text-white;
+}

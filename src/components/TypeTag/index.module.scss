@@ -1,0 +1,28 @@
+@use '@/styles/variables.scss' as *;
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 16rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  line-height: 1.4;
+
+  &Md {
+    padding: 10rpx 20rpx;
+    font-size: $font-size-sm;
+    border-radius: $radius-md;
+  }
+}
+
+.icon {
+  font-size: inherit;
+  margin-right: 6rpx;
+  line-height: 1;
+}
+
+.text {
+  font-size: inherit;
+  font-weight: inherit;
+}

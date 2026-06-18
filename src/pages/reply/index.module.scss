@@ -1,0 +1,282 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, $color-bg-page 25%);
+  padding-bottom: 180rpx;
+}
+
+.headerSection {
+  padding: $spacing-lg $page-padding 0;
+}
+
+.welcomeCard {
+  background: linear-gradient(135deg, $color-purple 0%, #7C3AED 60%, $color-primary 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  color: $color-text-white;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: $spacing-lg;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -60rpx;
+    right: -60rpx;
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: $radius-round;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.welcomeTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  display: block;
+  margin-bottom: $spacing-xs;
+  position: relative;
+  z-index: 1;
+}
+
+.welcomeSubtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+  display: block;
+  position: relative;
+  z-index: 1;
+  line-height: 1.5;
+}
+
+.featureRow {
+  display: flex;
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+  position: relative;
+  z-index: 1;
+}
+
+.featureItem {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-md;
+  padding: $spacing-md $spacing-sm;
+  text-align: center;
+}
+
+.featureIcon {
+  font-size: 36rpx;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.featureText {
+  font-size: 20rpx;
+  display: block;
+}
+
+.audienceTabs {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.audienceTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+.audienceRow {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.audienceCard {
+  flex: 1;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+  border: 2rpx solid transparent;
+  text-align: center;
+  transition: all $transition-base;
+
+  &.active {
+    border-color: $color-purple;
+    background: rgba(139, 92, 246, 0.08);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.audienceIcon {
+  font-size: 48rpx;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.audienceLabel {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  display: block;
+}
+
+.categorySection {
+  padding: 0 $page-padding;
+  margin-bottom: $spacing-lg;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.categoryScroll {
+  display: flex;
+  gap: 16rpx;
+  overflow-x: auto;
+  padding-bottom: $spacing-xs;
+}
+
+.categoryChip {
+  flex-shrink: 0;
+  padding: 16rpx 28rpx;
+  border-radius: $radius-button;
+  background: $color-bg-card;
+  box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &.active {
+    background: linear-gradient(135deg, $color-purple 0%, $color-primary 100%);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.categoryChipText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+
+  .active & {
+    color: $color-text-white;
+  }
+}
+
+.listSection {
+  padding: 0 $page-padding;
+}
+
+.listTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.listTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.listCount {
+  font-size: $font-size-xs;
+  color: $color-purple;
+  background: rgba(139, 92, 246, 0.1);
+  padding: 6rpx 20rpx;
+  border-radius: $radius-button;
+  font-weight: $font-weight-medium;
+}
+
+.tipsCard {
+  background: linear-gradient(135deg, rgba(30, 90, 168, 0.08) 0%, rgba(139, 92, 246, 0.06) 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-md;
+  border-left: 4rpx solid $color-primary;
+}
+
+.tipsTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-primary;
+  display: block;
+  margin-bottom: $spacing-xs;
+}
+
+.tipsText {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  display: block;
+}
+
+.emptyState {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-xl * 2;
+  text-align: center;
+  box-shadow: $shadow-card;
+}
+
+.emptyIcon {
+  font-size: 100rpx;
+  display: block;
+  margin-bottom: $spacing-md;
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+  display: block;
+  line-height: 1.5;
+}
+
+.createFab {
+  position: fixed;
+  right: $spacing-lg;
+  bottom: 200rpx;
+  background: linear-gradient(135deg, $color-purple 0%, $color-primary 100%);
+  padding: 0 $spacing-lg;
+  height: 96rpx;
+  border-radius: $radius-button;
+  box-shadow: 0 8rpx 32rpx rgba(139, 92, 246, 0.4);
+  display: flex;
+  align-items: center;
+  z-index: 100;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 4rpx 16rpx rgba(139, 92, 246, 0.3);
+  }
+}
+
+.createFabIcon {
+  font-size: 36rpx;
+  margin-right: $spacing-xs;
+}
+
+.createFabText {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+}
